@@ -33,6 +33,11 @@ func TestNewApp(t *testing.T) {
 			json:        `{"name":"app","description}`,
 			expectError: true,
 		},
+		{
+			name:        "failure, missing required field",
+			json:        `{"name":"app"}`,
+			expectError: true,
+		},
 	}
 
 	for _, test := range tests {

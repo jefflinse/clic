@@ -18,6 +18,10 @@ func NewApp(specification []byte) (*App, error) {
 		return nil, err
 	}
 
+	if err := appSpec.Validate(); err != nil {
+		return nil, err
+	}
+
 	return newAppFromSpec(appSpec)
 }
 
