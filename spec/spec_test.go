@@ -135,12 +135,14 @@ func TestApp_Validate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := test.app.Validate()
-		if test.valid {
-			assert.NoError(t, err)
-		} else {
-			assert.Error(t, err)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			err := test.app.Validate()
+			if test.valid {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
 	}
 }
 
@@ -272,11 +274,13 @@ func TestCommand_Validate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := test.command.Validate()
-		if test.valid {
-			assert.NoError(t, err)
-		} else {
-			assert.Error(t, err)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			err := test.command.Validate()
+			if test.valid {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
 	}
 }
