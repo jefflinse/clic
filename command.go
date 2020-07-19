@@ -21,7 +21,20 @@ func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
 	case spec.ExecCommandType:
 		command.Action = newExecInvocationFn(commandSpec.Exec)
 	case spec.LambdaCommandType:
-		command.Action = newLambdaInvocationFn(commandSpec.LambdaARN)
+		command.Action = newLambdaInvocationFn(commandSpec.LambdaARN, commandSpec.LambdaRequestParameters)
+		for _, param := range commandSpec.LambdaRequestParameters {
+			var flag cli.Flag
+			switch param.Type {
+			case spec.StringParamType:
+				flag = &cli.StringFlag{
+					Name:     toDashes(param.Name),
+					Usage:    param.Description,
+					Required: param.Required,
+				}
+			}
+
+			command.Flags = append(command.Flags, flag)
+		}
 	case spec.NoopCommandType:
 		command.Action = newNoopInvocationFn()
 	case spec.SubcommandsCommandType:
@@ -47,9 +60,22 @@ func newExecInvocationFn(cmd string) func(ctx *cli.Context) error {
 }
 
 // Creates an invocation function that executes an AWS Lambda function and prints its results.
-func newLambdaInvocationFn(lambdaARN string) func(ctx *cli.Context) error {
-	request := map[string]interface{}{}
+func newLambdaInvocationFn(lambdaARN string, params []*spec.Parameter) func(ctx *cli.Context) error {
+	paramTypes := map[string]string{}
+	for _, param := range params {
+		paramTypes[param.Name] = param.Type
+	}
+
 	return func(ctx *cli.Context) error {
+		request := map[string]interface{}{}
+		for _, flagName := range ctx.LocalFlagNames() {
+			reqParamName := toUnderscores(flagName)
+			switch paramTypes[reqParamName] {
+			case spec.StringParamType:
+				request[reqParamName] = ctx.String(flagName)
+			}
+		}
+
 		response, functionError, err := executeLambda(lambdaARN, request)
 		if err != nil {
 			return err
