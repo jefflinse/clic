@@ -9,6 +9,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// Creates a CLI command from the provided command spec.
 func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
 	command := &cli.Command{
 		Name:  commandSpec.Name,
@@ -31,6 +32,7 @@ func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
 	return command
 }
 
+// Creates an invocation function that executes a local command via the shell.
 func newExecInvocationFn(cmd string) func(ctx *cli.Context) error {
 	command := exec.Command("/bin/bash", "-c", cmd)
 	output := strings.Builder{}
@@ -43,11 +45,11 @@ func newExecInvocationFn(cmd string) func(ctx *cli.Context) error {
 	}
 }
 
-// Create an invocation function that executes an AWS Lambda function and prints its results.
+// Creates an invocation function that executes an AWS Lambda function and prints its results.
 func newLambdaInvocationFn(lambdaARN string) func(ctx *cli.Context) error {
 	request := map[string]interface{}{}
 	return func(ctx *cli.Context) error {
-		response, err := invokeLambda(lambdaARN, request)
+		response, err := executeLambda(lambdaARN, request)
 		if err != nil {
 			return err
 		}
@@ -57,6 +59,7 @@ func newLambdaInvocationFn(lambdaARN string) func(ctx *cli.Context) error {
 	}
 }
 
+// Creates an invocation function that does nothing (no-op).
 func newNoopInvocationFn() func(ctx *cli.Context) error {
 	return func(ctx *cli.Context) error {
 		return nil

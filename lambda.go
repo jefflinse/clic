@@ -8,7 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 )
 
-func invokeLambda(arn string, request interface{}) ([]byte, error) {
+// Executes the AWS Lambda function specified by an ARN, passing the specified payload, if any.
+func executeLambda(arn string, request interface{}) ([]byte, error) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
