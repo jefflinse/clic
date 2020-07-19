@@ -14,12 +14,21 @@ type App struct {
 
 // A Command specifes an action or a set of subcommands.
 type Command struct {
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Type        string     `json:"type"`
-	Exec        string     `json:"exec,omitempty"`
-	LambdaARN   string     `json:"lambda_arn,omitempty"`
-	Subcommands []*Command `json:"subcommands,omitempty"`
+	Name                    string       `json:"name"`
+	Description             string       `json:"description"`
+	Type                    string       `json:"type"`
+	Exec                    string       `json:"exec,omitempty"`
+	LambdaARN               string       `json:"lambda_arn,omitempty"`
+	LambdaRequestParameters []*Parameter `json:"lambda_request_parameters,omitempty"`
+	Subcommands             []*Command   `json:"subcommands,omitempty"`
+}
+
+// A Parameter specifies a command parameter.
+type Parameter struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Type        string `json:"type"`
+	Required    bool   `json:"required,omitempty"`
 }
 
 const (
@@ -34,6 +43,11 @@ const (
 
 	// SubcommandsCommandType is a command that contains one or more subcommands.
 	SubcommandsCommandType = "SUBCOMMANDS"
+)
+
+const (
+	// StringParamType is a string parameter.
+	StringParamType = "string"
 )
 
 // NewAppSpec creates a new App from the provided spec.
@@ -104,6 +118,35 @@ func (command Command) Validate() error {
 	for _, command := range command.Subcommands {
 		if err := command.Validate(); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+// NewParamterSpec creates a new Parameter from the provided spec.
+func NewParamterSpec(content []byte) (*Parameter, error) {
+	param := &Parameter{}
+	if err := json.Unmarshal(content, param); err != nil {
+		return nil, err
+	}
+
+	return param, nil
+}
+
+// Validate validates a Parameter.
+func (param Parameter) Validate() error {
+	if param.Name == "" {
+		return NewInvalidSpecError("missing parameter name")
+	} else if param.Description == "" {
+		return NewInvalidSpecError("missing parameter description")
+	} else if param.Type == "" {
+		return NewInvalidSpecError("missing parameter type")
+	} else {
+		switch param.Type {
+		case StringParamType:
+		default:
+			return NewInvalidSpecError(fmt.Sprintf("unknown parameter type: %s", param.Type))
 		}
 	}
 
