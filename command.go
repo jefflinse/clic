@@ -16,10 +16,12 @@ func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
 	}
 
 	switch commandSpec.Type {
-	case spec.NoopCommandType:
-		command.Action = newNoopInvocationFn()
 	case spec.ExecCommandType:
 		command.Action = newExecInvocationFn(commandSpec.Exec)
+	case spec.LambdaCommandType:
+		command.Action = newLambdaInvocationFn(commandSpec.LambdaARN)
+	case spec.NoopCommandType:
+		command.Action = newNoopInvocationFn()
 	}
 
 	if commandSpec.Subcommands != nil {
@@ -31,12 +33,6 @@ func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
 	return command
 }
 
-func newNoopInvocationFn() func(ctx *cli.Context) error {
-	return func(ctx *cli.Context) error {
-		return nil
-	}
-}
-
 func newExecInvocationFn(cmd string) func(ctx *cli.Context) error {
 	command := exec.Command("/bin/bash", "-c", cmd)
 	output := strings.Builder{}
@@ -46,5 +42,25 @@ func newExecInvocationFn(cmd string) func(ctx *cli.Context) error {
 		err := command.Run()
 		fmt.Print(output.String())
 		return err
+	}
+}
+
+// Create an invocation function that executes an AWS Lambda function and prints its results.
+func newLambdaInvocationFn(lambdaARN string) func(ctx *cli.Context) error {
+	request := map[string]interface{}{}
+	return func(ctx *cli.Context) error {
+		response, err := invokeLambda(lambdaARN, request)
+		if err != nil {
+			return err
+		}
+
+		fmt.Print(string(response))
+		return nil
+	}
+}
+
+func newNoopInvocationFn() func(ctx *cli.Context) error {
+	return func(ctx *cli.Context) error {
+		return nil
 	}
 }
