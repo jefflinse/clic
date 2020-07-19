@@ -22,9 +22,7 @@ func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
 		command.Action = newLambdaInvocationFn(commandSpec.LambdaARN)
 	case spec.NoopCommandType:
 		command.Action = newNoopInvocationFn()
-	}
-
-	if commandSpec.Subcommands != nil {
+	case spec.SubcommandsCommandType:
 		for _, subcommandSpec := range commandSpec.Subcommands {
 			command.Subcommands = append(command.Subcommands, newCommandFromSpec(subcommandSpec))
 		}
