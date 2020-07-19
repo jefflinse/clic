@@ -9,7 +9,7 @@ import (
 )
 
 // Executes the AWS Lambda function specified by an ARN, passing the specified payload, if any.
-func executeLambda(arn string, request interface{}) ([]byte, error) {
+func executeLambda(arn string, request interface{}) ([]byte, *string, error) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -18,13 +18,13 @@ func executeLambda(arn string, request interface{}) ([]byte, error) {
 
 	payload, err := json.Marshal(request)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	result, err := client.Invoke(&lambda.InvokeInput{FunctionName: aws.String(arn), Payload: payload})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return result.Payload, nil
+	return result.Payload, result.FunctionError, nil
 }

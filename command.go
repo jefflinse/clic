@@ -2,6 +2,7 @@ package handyman
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -49,9 +50,11 @@ func newExecInvocationFn(cmd string) func(ctx *cli.Context) error {
 func newLambdaInvocationFn(lambdaARN string) func(ctx *cli.Context) error {
 	request := map[string]interface{}{}
 	return func(ctx *cli.Context) error {
-		response, err := executeLambda(lambdaARN, request)
+		response, functionError, err := executeLambda(lambdaARN, request)
 		if err != nil {
 			return err
+		} else if functionError != nil {
+			fmt.Fprint(os.Stderr, *functionError)
 		}
 
 		fmt.Print(string(response))
