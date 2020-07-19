@@ -17,10 +17,14 @@ type Command struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	Type        string     `json:"type"`
+	Exec        string     `json:"exec,omitempty"`
 	Subcommands []*Command `json:"subcommands,omitempty"`
 }
 
 const (
+	// ExecCommandType is a command that executes a local command.
+	ExecCommandType = "EXEC"
+
 	// SubcommandsCommandType is a command that contains one or more subcommands.
 	SubcommandsCommandType = "SUBCOMMANDS"
 
@@ -75,6 +79,10 @@ func (command Command) Validate() error {
 		return NewInvalidSpecError("missing command type")
 	} else {
 		switch command.Type {
+		case ExecCommandType:
+			if command.Exec == "" {
+				return NewInvalidSpecError("missing command spec")
+			}
 		case NoopCommandType:
 		case SubcommandsCommandType:
 			if command.Subcommands == nil || len(command.Subcommands) == 0 {

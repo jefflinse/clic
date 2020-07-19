@@ -249,6 +249,16 @@ func TestCommand_Validate(t *testing.T) {
 			valid: true,
 		},
 		{
+			name: "valid, exec type with exec",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.ExecCommandType,
+				Exec:        "echo hello",
+			},
+			valid: true,
+		},
+		{
 			name:    "invalid, missing name",
 			command: spec.Command{Description: "the cmd"},
 			valid:   false,
@@ -278,7 +288,7 @@ func TestCommand_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "invalid, subcommant type with no subcommands",
+			name: "invalid, subcommant type without subcommands",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
@@ -293,6 +303,15 @@ func TestCommand_Validate(t *testing.T) {
 				Description: "the cmd",
 				Type:        spec.SubcommandsCommandType,
 				Subcommands: []*spec.Command{},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid, exec type without exec",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.ExecCommandType,
 			},
 			valid: false,
 		},

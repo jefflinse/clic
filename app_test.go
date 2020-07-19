@@ -20,12 +20,12 @@ func TestNewApp(t *testing.T) {
 		},
 		{
 			name:        "success, with a valid command",
-			json:        `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"the cmd"}]}`,
+			json:        `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"the cmd","type":"NOOP"}]}`,
 			expectError: false,
 		},
 		{
 			name:        "success, with a valid command containing valid subcommand",
-			json:        `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"the cmd","subcommands":[{"name":"subcmd","description":"the subcmd"}]}]}`,
+			json:        `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"the cmd","type":"SUBCOMMANDS","subcommands":[{"name":"subcmd","description":"the subcmd","type":"NOOP"}]}]}`,
 			expectError: false,
 		},
 		{

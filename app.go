@@ -49,13 +49,14 @@ func newAppFromSpec(appSpec *spec.App) (*App, error) {
 
 func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
 	command := &cli.Command{
-		Name:        commandSpec.Name,
-		Usage:       commandSpec.Description,
-		Subcommands: make([]*cli.Command, 0),
+		Name:  commandSpec.Name,
+		Usage: commandSpec.Description,
 	}
 
-	for _, subcommandSpec := range commandSpec.Subcommands {
-		command.Subcommands = append(command.Subcommands, newCommandFromSpec(subcommandSpec))
+	if commandSpec.Subcommands != nil {
+		for _, subcommandSpec := range commandSpec.Subcommands {
+			command.Subcommands = append(command.Subcommands, newCommandFromSpec(subcommandSpec))
+		}
 	}
 
 	return command
