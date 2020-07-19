@@ -15,7 +15,6 @@ func main() {
 	}
 
 	content, err := ioutil.ReadFile(os.Args[1])
-	fmt.Println(err)
 	fatalOn(err, "failed to read spec file")
 
 	app, err := handyman.NewApp(content)

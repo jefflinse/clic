@@ -46,18 +46,3 @@ func newAppFromSpec(appSpec *spec.App) (*App, error) {
 
 	return &App{cliApp: cliApp, spec: appSpec}, nil
 }
-
-func newCommandFromSpec(commandSpec *spec.Command) *cli.Command {
-	command := &cli.Command{
-		Name:  commandSpec.Name,
-		Usage: commandSpec.Description,
-	}
-
-	if commandSpec.Subcommands != nil {
-		for _, subcommandSpec := range commandSpec.Subcommands {
-			command.Subcommands = append(command.Subcommands, newCommandFromSpec(subcommandSpec))
-		}
-	}
-
-	return command
-}
