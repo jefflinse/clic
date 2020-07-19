@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+jobs:
+  ci:
+    name: Build + Test
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.14
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.14
+      id: go
+
+    - name: Check out source code
+      uses: actions/checkout@v1
+
+    - name: Build
+      run: |
+        go build
+        pushd spec && go build && popd
+        pushd runner && go build && popd
+
+    - name: Test
+      run: |
+        go test
+        pushd spec && go test && popd
+        pushd runner && go test && popd
