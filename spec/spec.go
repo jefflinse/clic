@@ -18,6 +18,7 @@ type Command struct {
 	Description string     `json:"description"`
 	Type        string     `json:"type"`
 	Exec        string     `json:"exec,omitempty"`
+	LambdaARN   string     `json:"lambda_arn,omitempty"`
 	Subcommands []*Command `json:"subcommands,omitempty"`
 }
 
@@ -25,11 +26,14 @@ const (
 	// ExecCommandType is a command that executes a local command.
 	ExecCommandType = "EXEC"
 
-	// SubcommandsCommandType is a command that contains one or more subcommands.
-	SubcommandsCommandType = "SUBCOMMANDS"
+	// LambdaCommandType is a command that invokes an AWS Lambda function.
+	LambdaCommandType = "LAMBDA"
 
 	// NoopCommandType is a command that does nothing.
 	NoopCommandType = "NOOP"
+
+	// SubcommandsCommandType is a command that contains one or more subcommands.
+	SubcommandsCommandType = "SUBCOMMANDS"
 )
 
 // NewAppSpec creates a new App from the provided spec.
@@ -81,7 +85,11 @@ func (command Command) Validate() error {
 		switch command.Type {
 		case ExecCommandType:
 			if command.Exec == "" {
-				return NewInvalidSpecError("missing command spec")
+				return NewInvalidSpecError("missing command exec")
+			}
+		case LambdaCommandType:
+			if command.LambdaARN == "" {
+				return NewInvalidSpecError("missing command lambda ARN")
 			}
 		case NoopCommandType:
 		case SubcommandsCommandType:

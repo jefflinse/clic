@@ -259,6 +259,16 @@ func TestCommand_Validate(t *testing.T) {
 			valid: true,
 		},
 		{
+			name: "valid, lambda type with lambda ARM",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.LambdaCommandType,
+				LambdaARN:   "aws:arn:region:account:lambda:function:name:version",
+			},
+			valid: true,
+		},
+		{
 			name:    "invalid, missing name",
 			command: spec.Command{Description: "the cmd"},
 			valid:   false,
@@ -288,7 +298,7 @@ func TestCommand_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "invalid, subcommant type without subcommands",
+			name: "invalid, subcommand type without subcommands",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
@@ -297,7 +307,7 @@ func TestCommand_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "invalid, subcommant type with empty subcommands",
+			name: "invalid, subcommand type with empty subcommands",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
@@ -312,6 +322,15 @@ func TestCommand_Validate(t *testing.T) {
 				Name:        "cmd",
 				Description: "the cmd",
 				Type:        spec.ExecCommandType,
+			},
+			valid: false,
+		},
+		{
+			name: "invalid, lambda type without lambda",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.LambdaCommandType,
 			},
 			valid: false,
 		},
