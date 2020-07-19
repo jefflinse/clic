@@ -105,19 +105,27 @@ func (command Command) Validate() error {
 			if command.LambdaARN == "" {
 				return NewInvalidSpecError("missing command lambda ARN")
 			}
+
+			if command.LambdaRequestParameters != nil {
+				for _, param := range command.LambdaRequestParameters {
+					if err := param.Validate(); err != nil {
+						return err
+					}
+				}
+			}
 		case NoopCommandType:
 		case SubcommandsCommandType:
 			if command.Subcommands == nil || len(command.Subcommands) == 0 {
 				return NewInvalidSpecError("missing command subcommands")
 			}
+
+			for _, command := range command.Subcommands {
+				if err := command.Validate(); err != nil {
+					return err
+				}
+			}
 		default:
 			return NewInvalidSpecError(fmt.Sprintf("unknown command type: %s", command.Type))
-		}
-	}
-
-	for _, command := range command.Subcommands {
-		if err := command.Validate(); err != nil {
-			return err
 		}
 	}
 

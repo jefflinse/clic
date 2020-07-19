@@ -203,7 +203,7 @@ func TestCommand_Validate(t *testing.T) {
 		valid   bool
 	}{
 		{
-			name: "valid, no subcommands",
+			name: "valid, noop type",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
@@ -212,7 +212,7 @@ func TestCommand_Validate(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "valid, with one valid subcommand",
+			name: "valid, subcommand type with one valid subcommand",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
@@ -228,7 +228,7 @@ func TestCommand_Validate(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "valid, with multiple valid subcommands",
+			name: "valid, subcommand type with multiple valid subcommands",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
@@ -259,12 +259,52 @@ func TestCommand_Validate(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "valid, lambda type with lambda ARM",
+			name: "valid, lambda type with lambda ARN, no parameters",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
 				Type:        spec.LambdaCommandType,
 				LambdaARN:   "aws:arn:region:account:lambda:function:name:version",
+			},
+			valid: true,
+		},
+		{
+			name: "valid, lambda type with lambda ARN, with one parameter",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.LambdaCommandType,
+				LambdaARN:   "aws:arn:region:account:lambda:function:name:version",
+				LambdaRequestParameters: []*spec.Parameter{
+					{
+						Name:        "param",
+						Description: "the param",
+						Type:        spec.StringParamType,
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "valid, lambda type with lambda ARN, with multiple parameters",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.LambdaCommandType,
+				LambdaARN:   "aws:arn:region:account:lambda:function:name:version",
+				LambdaRequestParameters: []*spec.Parameter{
+					{
+						Name:        "param1",
+						Description: "the first param",
+						Type:        spec.StringParamType,
+					},
+					{
+						Name:        "param2",
+						Description: "the second param",
+						Type:        spec.StringParamType,
+						Required:    true,
+					},
+				},
 			},
 			valid: true,
 		},
@@ -331,6 +371,23 @@ func TestCommand_Validate(t *testing.T) {
 				Name:        "cmd",
 				Description: "the cmd",
 				Type:        spec.LambdaCommandType,
+			},
+			valid: false,
+		},
+		{
+			name: "invalid, lambda type with invalid parameter",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.LambdaCommandType,
+				LambdaARN:   "aws:arn:region:account:lambda:function:name:version",
+				LambdaRequestParameters: []*spec.Parameter{
+					{
+						Name:        "param",
+						Description: "the param",
+						Type:        "invalid",
+					},
+				},
 			},
 			valid: false,
 		},
