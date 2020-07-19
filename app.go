@@ -38,6 +38,7 @@ func newAppFromSpec(appSpec *spec.App) (*App, error) {
 		HelpName: appSpec.Name,
 		Usage:    appSpec.Description,
 		Commands: make([]*cli.Command, 0),
+		HideHelp: true,
 	}
 
 	for _, commandSpec := range appSpec.Commands {
