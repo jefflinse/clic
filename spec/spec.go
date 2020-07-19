@@ -2,6 +2,7 @@ package spec
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 // An App specifies a complete Handyman application.
@@ -15,8 +16,17 @@ type App struct {
 type Command struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
+	Type        string     `json:"type"`
 	Subcommands []*Command `json:"subcommands,omitempty"`
 }
+
+const (
+	// SubcommandsCommandType is a command that contains one or more subcommands.
+	SubcommandsCommandType = "SUBCOMMANDS"
+
+	// NoopCommandType is a command that does nothing.
+	NoopCommandType = "NOOP"
+)
 
 // NewAppSpec creates a new App from the provided spec.
 func NewAppSpec(content []byte) (*App, error) {
@@ -61,6 +71,18 @@ func (command Command) Validate() error {
 		return NewInvalidSpecError("missing command name")
 	} else if command.Description == "" {
 		return NewInvalidSpecError("missing command description")
+	} else if command.Type == "" {
+		return NewInvalidSpecError("missing command type")
+	} else {
+		switch command.Type {
+		case NoopCommandType:
+		case SubcommandsCommandType:
+			if command.Subcommands == nil || len(command.Subcommands) == 0 {
+				return NewInvalidSpecError("missing command subcommands")
+			}
+		default:
+			return NewInvalidSpecError(fmt.Sprintf("unknown command type: %s", command.Type))
+		}
 	}
 
 	for _, command := range command.Subcommands {

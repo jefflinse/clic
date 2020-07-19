@@ -25,12 +25,12 @@ func TestNewAppSpec(t *testing.T) {
 		},
 		{
 			name:  "valid JSON, with one command",
-			json:  `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"a command"}]}`,
+			json:  `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"a command","type":"NOOP"}]}`,
 			valid: true,
 		},
 		{
 			name:  "valid JSON, with multiple commands",
-			json:  `{"name":"app","description":"the app","commands":[{"name":"cmd1","description":"a command"},{"name":"cmd2","description":"another command"}]}`,
+			json:  `{"name":"app","description":"the app","commands":[{"name":"cmd1","description":"a command","type":"NOOP"},{"name":"cmd2","description":"another command","type":"NOOP"}]}`,
 			valid: true,
 		},
 		{
@@ -83,9 +83,10 @@ func TestApp_Validate(t *testing.T) {
 				Name:        "app",
 				Description: "the app",
 				Commands: []*spec.Command{
-					&spec.Command{
+					{
 						Name:        "cmd",
 						Description: "the cmd",
+						Type:        spec.NoopCommandType,
 					},
 				},
 			},
@@ -97,13 +98,15 @@ func TestApp_Validate(t *testing.T) {
 				Name:        "app",
 				Description: "the app",
 				Commands: []*spec.Command{
-					&spec.Command{
+					{
 						Name:        "cmd1",
 						Description: "a cmd",
+						Type:        spec.NoopCommandType,
 					},
-					&spec.Command{
+					{
 						Name:        "cmd2",
 						Description: "another cmd",
+						Type:        spec.NoopCommandType,
 					},
 				},
 			},
@@ -125,7 +128,7 @@ func TestApp_Validate(t *testing.T) {
 				Name:        "app",
 				Description: "the app",
 				Commands: []*spec.Command{
-					&spec.Command{
+					{
 						Name: "cmd1",
 					},
 				},
@@ -154,27 +157,27 @@ func TestNewCommandSpec(t *testing.T) {
 	}{
 		{
 			name:  "valid JSON, no subcommands",
-			json:  `{"name":"cmd","description":"the cmd"}`,
+			json:  `{"name":"cmd","description":"the cmd","type":"NOOP"}`,
 			valid: true,
 		},
 		{
 			name:  "valid JSON, with empty subcommands",
-			json:  `{"name":"cmd","description":"the cmd","subcommands":[]}`,
+			json:  `{"name":"cmd","description":"the cmd","type":"NOOP","subcommands":[]}`,
 			valid: true,
 		},
 		{
 			name:  "valid JSON, with one subcommand",
-			json:  `{"name":"cmd","description":"the cmd","commands":[{"name":"sub","description":"a subcommand"}]}`,
+			json:  `{"name":"cmd","description":"the cmd","type":"NOOP","commands":[{"name":"sub","description":"a subcommand"}]}`,
 			valid: true,
 		},
 		{
 			name:  "valid JSON, with multiple subcommand",
-			json:  `{"name":"cmd","description":"the cmd","commands":[{"name":"sub1","description":"a subcommand"},{"name":"sub2","description":"another subcommand"}]}`,
+			json:  `{"name":"cmd","description":"the cmd","type":"NOOP","commands":[{"name":"sub1","description":"a subcommand"},{"name":"sub2","description":"another subcommand"}]}`,
 			valid: true,
 		},
 		{
 			name:  "invalid JSON",
-			json:  `{"name":"cmd","description:"the cmd"}`,
+			json:  `{"name":"cmd","description:"the cmd","type":"NOOP"}`,
 			valid: false,
 		},
 	}
@@ -204,15 +207,7 @@ func TestCommand_Validate(t *testing.T) {
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
-			},
-			valid: true,
-		},
-		{
-			name: "valid, with empty subcommands",
-			command: spec.Command{
-				Name:        "cmd",
-				Description: "the cmd",
-				Subcommands: []*spec.Command{},
+				Type:        spec.NoopCommandType,
 			},
 			valid: true,
 		},
@@ -221,10 +216,12 @@ func TestCommand_Validate(t *testing.T) {
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
+				Type:        spec.SubcommandsCommandType,
 				Subcommands: []*spec.Command{
-					&spec.Command{
+					{
 						Name:        "cmd",
 						Description: "the cmd",
+						Type:        spec.NoopCommandType,
 					},
 				},
 			},
@@ -235,14 +232,17 @@ func TestCommand_Validate(t *testing.T) {
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
+				Type:        spec.SubcommandsCommandType,
 				Subcommands: []*spec.Command{
-					&spec.Command{
+					{
 						Name:        "cmd1",
 						Description: "a cmd",
+						Type:        spec.NoopCommandType,
 					},
-					&spec.Command{
+					{
 						Name:        "cmd2",
 						Description: "another cmd",
+						Type:        spec.NoopCommandType,
 					},
 				},
 			},
@@ -259,15 +259,50 @@ func TestCommand_Validate(t *testing.T) {
 			valid:   false,
 		},
 		{
+			name:    "invalid, missing type",
+			command: spec.Command{Name: "cmd", Description: "the cmd"},
+			valid:   false,
+		},
+		{
 			name: "invalid, subcommand is invalid",
 			command: spec.Command{
 				Name:        "cmd",
 				Description: "the cmd",
+				Type:        spec.SubcommandsCommandType,
 				Subcommands: []*spec.Command{
-					&spec.Command{
+					{
 						Name: "subcmd",
 					},
 				},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid, subcommant type with no subcommands",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.SubcommandsCommandType,
+			},
+			valid: false,
+		},
+		{
+			name: "invalid, subcommant type with empty subcommands",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        spec.SubcommandsCommandType,
+				Subcommands: []*spec.Command{},
+			},
+			valid: false,
+		},
+		{
+			name: "invalid command type",
+			command: spec.Command{
+				Name:        "cmd",
+				Description: "the cmd",
+				Type:        "INVALID",
+				Subcommands: []*spec.Command{},
 			},
 			valid: false,
 		},
