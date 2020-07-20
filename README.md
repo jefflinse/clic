@@ -1,5 +1,7 @@
 # Handyman - Do All Sorts of Things
 
+![CI](https://github.com/jefflinse/handyman/workflows/CI/badge.svg?branch=master)
+
 Compose, generate, and run custom CLI tools using simple JSON specs.
 
 - [Overview](#overview)
