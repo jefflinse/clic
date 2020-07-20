@@ -201,6 +201,7 @@ A very rough list of features and improvements I have in mind:
 
 - Codegen to produce a native Go binary from a spec
 - Codegen for other langauges
+- App-level and command-level versioning
 - Remove bash shell dependency from EXEC commands
 - Support additional parameter types:
   - natives (int, number, bool)
