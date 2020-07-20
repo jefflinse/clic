@@ -71,6 +71,12 @@ func newLambdaInvocationFn(lambdaARN string, params []*spec.Parameter) func(ctx 
 		for _, flagName := range ctx.LocalFlagNames() {
 			reqParamName := toUnderscores(flagName)
 			switch paramTypes[reqParamName] {
+			case spec.BoolParamType:
+				request[reqParamName] = ctx.Bool(flagName)
+			case spec.IntParamType:
+				request[reqParamName] = ctx.Int(flagName)
+			case spec.NumberParamType:
+				request[reqParamName] = ctx.Float64(flagName)
 			case spec.StringParamType:
 				request[reqParamName] = ctx.String(flagName)
 			}
