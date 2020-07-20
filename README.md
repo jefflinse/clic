@@ -55,7 +55,7 @@ NAME:
 USAGE:
    myapp  command [command options] [arguments...]
 
-COMMANDS:s
+COMMANDS:
    say-hello  prints a greeting to the world
 ```
 
