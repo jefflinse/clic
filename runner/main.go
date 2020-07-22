@@ -12,6 +12,7 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "usage: %s spec-file [args]", os.Args[0])
+		os.Exit(1)
 	}
 
 	content, err := ioutil.ReadFile(os.Args[1])
