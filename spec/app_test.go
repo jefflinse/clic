@@ -86,7 +86,6 @@ func TestApp_Validate(t *testing.T) {
 					{
 						Name:        "cmd",
 						Description: "the cmd",
-						Type:        spec.NoopCommandType,
 					},
 				},
 			},
@@ -101,12 +100,10 @@ func TestApp_Validate(t *testing.T) {
 					{
 						Name:        "cmd1",
 						Description: "a cmd",
-						Type:        spec.NoopCommandType,
 					},
 					{
 						Name:        "cmd2",
 						Description: "another cmd",
-						Type:        spec.NoopCommandType,
 					},
 				},
 			},

@@ -9,24 +9,39 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/handyman/commands"
 	"github.com/urfave/cli/v2"
 )
 
-// New creates a new command that executes an AWS lambda function and prints its results
-func New(cmdSpec *spec.Command) *cli.Command {
-	return &cli.Command{
-		Name:   cmdSpec.Name,
-		Usage:  cmdSpec.Description,
-		Action: newActionFn(cmdSpec.LambdaARN, cmdSpec.LambdaRequestParameters),
-		Flags:  generateFlags(cmdSpec.LambdaRequestParameters),
-	}
+type Spec struct {
+	ARN           string      `json:"arn"`
+	RequestParams []Parameter `json:"request_params,omitempty"`
 }
 
-// Creates the action function.
-func newActionFn(lambdaARN string, params []*spec.Parameter) cli.ActionFunc {
+type Parameter struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+	Required    bool   `json:"required"`
+}
+
+func New(v interface{}) (commands.Executor, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	s := Spec{}
+	if err := json.Unmarshal(data, &s); err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+func (s Spec) CLIActionFn() cli.ActionFunc {
 	paramTypes := map[string]string{}
-	for _, param := range params {
+	for _, param := range s.RequestParams {
 		paramTypes[param.Name] = param.Type
 	}
 
@@ -35,18 +50,18 @@ func newActionFn(lambdaARN string, params []*spec.Parameter) cli.ActionFunc {
 		for _, flagName := range ctx.LocalFlagNames() {
 			reqParamName := toUnderscores(flagName)
 			switch paramTypes[reqParamName] {
-			case spec.BoolParamType:
+			case "bool":
 				request[reqParamName] = ctx.Bool(flagName)
-			case spec.IntParamType:
+			case "int":
 				request[reqParamName] = ctx.Int(flagName)
-			case spec.NumberParamType:
+			case "number":
 				request[reqParamName] = ctx.Float64(flagName)
-			case spec.StringParamType:
+			case "string":
 				request[reqParamName] = ctx.String(flagName)
 			}
 		}
 
-		response, functionError, err := executeLambda(lambdaARN, request)
+		response, functionError, err := executeLambda(s.ARN, request)
 		if err != nil {
 			return err
 		} else if functionError != nil {
@@ -58,13 +73,12 @@ func newActionFn(lambdaARN string, params []*spec.Parameter) cli.ActionFunc {
 	}
 }
 
-// Generates the set of command line flags for this command.
-func generateFlags(params []*spec.Parameter) []cli.Flag {
+func (s Spec) CLIFlags() []cli.Flag {
 	flags := []cli.Flag{}
-	for _, param := range params {
+	for _, param := range s.RequestParams {
 		var flag cli.Flag
 		switch param.Type {
-		case spec.StringParamType:
+		case "string":
 			flag = &cli.StringFlag{
 				Name:     toDashes(param.Name),
 				Usage:    param.Description,
@@ -76,6 +90,18 @@ func generateFlags(params []*spec.Parameter) []cli.Flag {
 	}
 
 	return flags
+}
+
+func (s Spec) Type() string {
+	return "lambda"
+}
+
+func (s Spec) Validate() error {
+	if s.ARN == "" {
+		return fmt.Errorf("invalid %s command spec: missing ARN", s.Type())
+	}
+
+	return nil
 }
 
 // Executes the AWS Lambda function specified by an ARN, passing the specified payload, if any.

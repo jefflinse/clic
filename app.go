@@ -42,7 +42,7 @@ func newAppFromSpec(appSpec *spec.App) (*App, error) {
 	}
 
 	for _, commandSpec := range appSpec.Commands {
-		cliApp.Commands = append(cliApp.Commands, newCommandFromSpec(commandSpec))
+		cliApp.Commands = append(cliApp.Commands, commandSpec.CLICommand())
 	}
 
 	return &App{cliApp: cliApp, spec: appSpec}, nil

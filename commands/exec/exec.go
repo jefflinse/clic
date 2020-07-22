@@ -1,26 +1,35 @@
 package exec
 
 import (
+	"encoding/json"
 	"fmt"
 	osexec "os/exec"
 	"strings"
 
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/handyman/commands"
 	"github.com/urfave/cli/v2"
 )
 
-// New creates a new command that executes a local binary.
-func New(cmdSpec *spec.Command) *cli.Command {
-	return &cli.Command{
-		Name:   cmdSpec.Name,
-		Usage:  cmdSpec.Description,
-		Action: newActionFn(cmdSpec.Exec),
-	}
+type Spec struct {
+	Path string `json:"path"`
 }
 
-// Creates a action function.
-func newActionFn(cmd string) cli.ActionFunc {
-	command := osexec.Command("/bin/bash", "-c", cmd)
+func New(v interface{}) (commands.Executor, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	s := Spec{}
+	if err := json.Unmarshal(data, &s); err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+func (s Spec) CLIActionFn() cli.ActionFunc {
+	command := osexec.Command("/bin/bash", "-c", s.Path)
 	output := strings.Builder{}
 	command.Stdout = &output
 	command.Stderr = &output
@@ -29,4 +38,20 @@ func newActionFn(cmd string) cli.ActionFunc {
 		fmt.Print(output.String())
 		return err
 	}
+}
+
+func (s Spec) CLIFlags() []cli.Flag {
+	return nil
+}
+
+func (s Spec) Type() string {
+	return "exec"
+}
+
+func (s Spec) Validate() error {
+	if s.Path == "" {
+		return fmt.Errorf("invalid %s command spec: missing path", s.Type())
+	}
+
+	return nil
 }
