@@ -1,14 +1,14 @@
 package noop
 
 import (
-	"github.com/jefflinse/handyman/commands"
+	"github.com/jefflinse/handyman/command"
 	"github.com/urfave/cli/v2"
 )
 
 type Spec struct {
 }
 
-func New(v interface{}) (commands.Executor, error) {
+func New(v interface{}) (command.Executor, error) {
 	return &Spec{}, nil
 }
 

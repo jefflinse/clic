@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/jefflinse/handyman/commands"
+	"github.com/jefflinse/handyman/command"
 	"github.com/urfave/cli/v2"
 )
 
@@ -25,7 +25,7 @@ type Parameter struct {
 	Required    bool   `json:"required"`
 }
 
-func New(v interface{}) (commands.Executor, error) {
+func New(v interface{}) (command.Executor, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, err

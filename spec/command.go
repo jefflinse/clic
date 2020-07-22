@@ -4,18 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jefflinse/handyman/commands"
-	"github.com/jefflinse/handyman/commands/exec"
-	"github.com/jefflinse/handyman/commands/lambda"
-	"github.com/jefflinse/handyman/commands/noop"
+	"github.com/jefflinse/handyman/command"
+	"github.com/jefflinse/handyman/command/exec"
+	"github.com/jefflinse/handyman/command/lambda"
+	"github.com/jefflinse/handyman/command/noop"
 	"github.com/urfave/cli/v2"
 )
 
 // A Command specifes an action or a set of subcommands.
 type Command struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Executor    commands.Executor `json:"-"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Executor    command.Executor `json:"-"`
 }
 
 var requiredCommandFields = []string{
@@ -23,7 +23,7 @@ var requiredCommandFields = []string{
 	"description",
 }
 
-var commandMap = map[string]func(interface{}) (commands.Executor, error){
+var commandMap = map[string]func(interface{}) (command.Executor, error){
 	"exec":   exec.New,
 	"lambda": lambda.New,
 	"noop":   noop.New,

@@ -6,7 +6,7 @@ import (
 	osexec "os/exec"
 	"strings"
 
-	"github.com/jefflinse/handyman/commands"
+	"github.com/jefflinse/handyman/command"
 	"github.com/urfave/cli/v2"
 )
 
@@ -14,7 +14,7 @@ type Spec struct {
 	Path string `json:"path"`
 }
 
-func New(v interface{}) (commands.Executor, error) {
+func New(v interface{}) (command.Executor, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
