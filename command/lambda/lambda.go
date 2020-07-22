@@ -13,6 +13,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// Spec describes the executor.
 type Spec struct {
 	ARN           string      `json:"arn"`
 	RequestParams []Parameter `json:"request_params,omitempty"`
@@ -25,6 +26,7 @@ type Parameter struct {
 	Required    bool   `json:"required"`
 }
 
+// New creates a new executor.
 func New(v interface{}) (command.Executor, error) {
 	s := Spec{}
 	if err := command.Intermarshal(v, &s); err != nil {
@@ -34,6 +36,7 @@ func New(v interface{}) (command.Executor, error) {
 	return &s, nil
 }
 
+// CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	paramTypes := map[string]string{}
 	for _, param := range s.RequestParams {
@@ -68,6 +71,7 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 	}
 }
 
+// CLIFlags creates a set of CLI flags.
 func (s Spec) CLIFlags() []cli.Flag {
 	flags := []cli.Flag{}
 	for _, param := range s.RequestParams {
@@ -105,10 +109,12 @@ func (s Spec) CLIFlags() []cli.Flag {
 	return flags
 }
 
+// Type returns the type.
 func (s Spec) Type() string {
 	return "lambda"
 }
 
+// Validate validates the executor.
 func (s Spec) Validate() error {
 	if s.ARN == "" {
 		return fmt.Errorf("invalid %s command spec: missing ARN", s.Type())

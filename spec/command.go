@@ -39,26 +39,28 @@ func NewCommandSpec(content []byte) (*Command, error) {
 	return command, nil
 }
 
-func (command Command) CLICommand() *cli.Command {
+// CLICommand creates a CLI command for this command.
+func (c Command) CLICommand() *cli.Command {
 	return &cli.Command{
-		Name:   command.Name,
-		Usage:  command.Description,
-		Action: command.Executor.CLIActionFn(),
-		Flags:  command.Executor.CLIFlags(),
+		Name:   c.Name,
+		Usage:  c.Description,
+		Action: c.Executor.CLIActionFn(),
+		Flags:  c.Executor.CLIFlags(),
 	}
 }
 
 // Validate validates a Command spec.
-func (command Command) Validate() error {
-	if command.Name == "" {
+func (c Command) Validate() error {
+	if c.Name == "" {
 		return NewInvalidCommandSpecError("missing name")
-	} else if command.Description == "" {
+	} else if c.Description == "" {
 		return NewInvalidCommandSpecError("missing description")
 	}
 
-	return command.Executor.Validate()
+	return c.Executor.Validate()
 }
 
+// UnmarshalJSON unmarshals the specified JSON data into the command.
 func (c *Command) UnmarshalJSON(data []byte) error {
 	type commandMetadata struct {
 		Name        string `json:"name"`

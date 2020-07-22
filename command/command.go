@@ -14,6 +14,7 @@ type Executor interface {
 	Validate() error
 }
 
+// Intermarshal marshals the (unknown) executor object to JSON and then unmarshals it back to the target type.
 func Intermarshal(executor interface{}, target interface{}) error {
 	data, err := json.Marshal(executor)
 	if err != nil {
