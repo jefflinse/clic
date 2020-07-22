@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"encoding/json"
 	"fmt"
 	osexec "os/exec"
 	"strings"
@@ -15,17 +14,12 @@ type Spec struct {
 }
 
 func New(v interface{}) (command.Executor, error) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-
 	s := Spec{}
-	if err := json.Unmarshal(data, &s); err != nil {
+	if err := command.Intermarshal(v, &s); err != nil {
 		return nil, err
 	}
 
-	return s, nil
+	return &s, nil
 }
 
 func (s Spec) CLIActionFn() cli.ActionFunc {

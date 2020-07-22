@@ -1,6 +1,8 @@
 package command
 
 import (
+	"encoding/json"
+
 	"github.com/urfave/cli/v2"
 )
 
@@ -10,4 +12,17 @@ type Executor interface {
 	CLIFlags() []cli.Flag
 	Type() string
 	Validate() error
+}
+
+func Intermarshal(executor interface{}, target interface{}) error {
+	data, err := json.Marshal(executor)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(data, &target); err != nil {
+		return err
+	}
+
+	return nil
 }

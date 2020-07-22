@@ -26,17 +26,12 @@ type Parameter struct {
 }
 
 func New(v interface{}) (command.Executor, error) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-
 	s := Spec{}
-	if err := json.Unmarshal(data, &s); err != nil {
+	if err := command.Intermarshal(v, &s); err != nil {
 		return nil, err
 	}
 
-	return s, nil
+	return &s, nil
 }
 
 func (s Spec) CLIActionFn() cli.ActionFunc {
@@ -78,6 +73,24 @@ func (s Spec) CLIFlags() []cli.Flag {
 	for _, param := range s.RequestParams {
 		var flag cli.Flag
 		switch param.Type {
+		case "bool":
+			flag = &cli.BoolFlag{
+				Name:     toDashes(param.Name),
+				Usage:    param.Description,
+				Required: param.Required,
+			}
+		case "int":
+			flag = &cli.IntFlag{
+				Name:     toDashes(param.Name),
+				Usage:    param.Description,
+				Required: param.Required,
+			}
+		case "number":
+			flag = &cli.Float64Flag{
+				Name:     toDashes(param.Name),
+				Usage:    param.Description,
+				Required: param.Required,
+			}
 		case "string":
 			flag = &cli.StringFlag{
 				Name:     toDashes(param.Name),
