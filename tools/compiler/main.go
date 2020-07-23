@@ -49,26 +49,17 @@ func main() {
 
 func generateAppBinary(name string, specData []byte) error {
 	var err error
-	codePath, err = ioutil.TempDir("", "handyman-")
+	codePath, err = ioutil.TempDir("", fmt.Sprint("handyman-", name, "-"))
 	if err != nil {
 		return err
 	}
 
-	data, err := ioutil.ReadFile("codegen/main.template")
+	code, err := ioutil.ReadFile("codegen/main.template")
 	if err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(path.Join(codePath, "main.go"), data, 0666); err != nil {
-		return err
-	}
-
-	specTemplate, err := ioutil.ReadFile("codegen/main.template")
-	if err != nil {
-		return err
-	}
-
-	tpl, err := template.New("spec").Parse(string(specTemplate))
+	tpl, err := template.New("main").Parse(string(code))
 	if err != nil {
 		return err
 	}
@@ -97,6 +88,10 @@ func generateAppBinary(name string, specData []byte) error {
 
 	// go build
 	if err := runBashCmd(fmt.Sprintf(`go build -o %s/%s`, appPath, name)); err != nil {
+		return err
+	}
+
+	if err := os.RemoveAll(codePath); err != nil {
 		return err
 	}
 
