@@ -1,16 +1,16 @@
 package noop
 
 import (
-	"github.com/jefflinse/handyman/command"
+	"github.com/jefflinse/handyman/provider"
 	"github.com/urfave/cli/v2"
 )
 
-// Spec describes the executor.
+// Spec describes the provider.
 type Spec struct {
 }
 
-// New creates a new executor.
-func New(v interface{}) (command.Executor, error) {
+// New creates a new provider.
+func New(v interface{}) (provider.Provider, error) {
 	return &Spec{}, nil
 }
 
@@ -31,7 +31,7 @@ func (s Spec) Type() string {
 	return "noop"
 }
 
-// Validate validates the executor.
+// Validate validates the provider.
 func (s Spec) Validate() error {
 	return nil
 }

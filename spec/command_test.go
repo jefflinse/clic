@@ -19,7 +19,7 @@ func TestNewCommandSpec(t *testing.T) {
 			valid: true,
 		},
 		{
-			name:  "succeeds even if executor type isn't recognized",
+			name:  "succeeds even if provider type isn't recognized",
 			json:  `{"name":"cmd","description":"the cmd","invalid":{"foo":"bar"}}`,
 			valid: true,
 		},
@@ -51,7 +51,7 @@ func TestCommand_Validate(t *testing.T) {
 		valid bool
 	}{
 		{
-			name:  "is valid when a known executor is specified",
+			name:  "is valid when a known provider is specified",
 			json:  `{"name":"cmd","description":"the cmd","noop":{}}`,
 			valid: true,
 		},
@@ -66,12 +66,12 @@ func TestCommand_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			name:  "is valid when missing executor",
+			name:  "is valid when missing provider",
 			json:  `{"name":"cmd","description":"the cmd"}`,
 			valid: false,
 		},
 		{
-			name:  "is invalid when an unknown executor is specified",
+			name:  "is invalid when an unknown provider is specified",
 			json:  `{"name":"cmd","description":"the cmd","invalid":{"foo":"bar"}}`,
 			valid: false,
 		},

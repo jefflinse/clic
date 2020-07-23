@@ -6,19 +6,19 @@ import (
 	osexec "os/exec"
 	"strings"
 
-	"github.com/jefflinse/handyman/command"
+	"github.com/jefflinse/handyman/provider"
 	"github.com/urfave/cli/v2"
 )
 
-// Spec describes the executor.
+// Spec describes the provider.
 type Spec struct {
 	Path string `json:"path"`
 }
 
-// New creates a new executor.
-func New(v interface{}) (command.Executor, error) {
+// New creates a new provider.
+func New(v interface{}) (provider.Provider, error) {
 	s := Spec{}
-	if err := command.Intermarshal(v, &s); err != nil {
+	if err := provider.Intermarshal(v, &s); err != nil {
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func (s Spec) Type() string {
 	return "exec"
 }
 
-// Validate validates the executor.
+// Validate validates the provider.
 func (s Spec) Validate() error {
 	if s.Path == "" {
 		return fmt.Errorf("invalid %s command spec: missing path", s.Type())

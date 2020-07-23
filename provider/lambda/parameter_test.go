@@ -3,7 +3,7 @@ package lambda_test
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman/command/lambda"
+	"github.com/jefflinse/handyman/provider/lambda"
 	"github.com/stretchr/testify/assert"
 )
 

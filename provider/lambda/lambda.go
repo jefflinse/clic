@@ -9,20 +9,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/jefflinse/handyman/command"
+	"github.com/jefflinse/handyman/provider"
 	"github.com/urfave/cli/v2"
 )
 
-// Spec describes the executor.
+// Spec describes the provider.
 type Spec struct {
 	ARN           string      `json:"arn"`
 	RequestParams []Parameter `json:"request_params,omitempty"`
 }
 
-// New creates a new executor.
-func New(v interface{}) (command.Executor, error) {
+// New creates a new provider.
+func New(v interface{}) (provider.Provider, error) {
 	s := Spec{}
-	if err := command.Intermarshal(v, &s); err != nil {
+	if err := provider.Intermarshal(v, &s); err != nil {
 		return nil, err
 	}
 
@@ -109,7 +109,7 @@ func (s Spec) Type() string {
 	return "lambda"
 }
 
-// Validate validates the executor.
+// Validate validates the provider.
 func (s Spec) Validate() error {
 	if s.ARN == "" {
 		return fmt.Errorf("invalid %s command spec: missing ARN", s.Type())

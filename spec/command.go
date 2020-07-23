@@ -4,18 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jefflinse/handyman/command"
-	"github.com/jefflinse/handyman/command/exec"
-	"github.com/jefflinse/handyman/command/lambda"
-	"github.com/jefflinse/handyman/command/noop"
+	"github.com/jefflinse/handyman/provider"
+	"github.com/jefflinse/handyman/provider/exec"
+	"github.com/jefflinse/handyman/provider/lambda"
+	"github.com/jefflinse/handyman/provider/noop"
 	"github.com/urfave/cli/v2"
 )
 
 // A Command specifes an action or a set of subcommands.
 type Command struct {
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	Executor    command.Executor `json:"-"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Provider    provider.Provider `json:"-"`
 }
 
 var requiredCommandFields = []string{
@@ -23,7 +23,7 @@ var requiredCommandFields = []string{
 	"description",
 }
 
-var commandMap = map[string]func(interface{}) (command.Executor, error){
+var commandMap = map[string]func(interface{}) (provider.Provider, error){
 	"exec":   exec.New,
 	"lambda": lambda.New,
 	"noop":   noop.New,
@@ -44,8 +44,8 @@ func (c Command) CLICommand() *cli.Command {
 	return &cli.Command{
 		Name:   c.Name,
 		Usage:  c.Description,
-		Action: c.Executor.CLIActionFn(),
-		Flags:  c.Executor.CLIFlags(),
+		Action: c.Provider.CLIActionFn(),
+		Flags:  c.Provider.CLIFlags(),
 	}
 }
 
@@ -69,9 +69,9 @@ func (c *Command) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// the executor type is the remaining non-required field name
+	// the provider type is the remaining non-required field name
 	if len(content) == len(requiredCommandFields) {
-		// don't bother looking for an executor if not enough fields are provided
+		// don't bother looking for a provider if not enough fields are provided
 		return nil
 	} else if len(content) > len(requiredCommandFields) {
 		for key := range content {
@@ -83,15 +83,15 @@ func (c *Command) UnmarshalJSON(data []byte) error {
 				}
 			}
 
-			// use the first available executor we match
+			// use the first available provider we match
 			if !isRequiredField {
-				if executorCtor, ok := commandMap[key]; ok {
-					executor, err := executorCtor(content[key])
+				if providerCtor, ok := commandMap[key]; ok {
+					provider, err := providerCtor(content[key])
 					if err != nil {
 						return err
 					}
 
-					c.Executor = executor
+					c.Provider = provider
 					return nil
 				}
 			}
@@ -107,11 +107,11 @@ func (c Command) Validate() error {
 		return NewInvalidCommandSpecError("missing name")
 	} else if c.Description == "" {
 		return NewInvalidCommandSpecError("missing description")
-	} else if c.Executor == nil {
-		return NewInvalidCommandSpecError("missing executor")
+	} else if c.Provider == nil {
+		return NewInvalidCommandSpecError("missing provider")
 	}
 
-	return c.Executor.Validate()
+	return c.Provider.Validate()
 }
 
 // NewInvalidCommandSpecError creates a new error indicating that a command spec is invalid.
