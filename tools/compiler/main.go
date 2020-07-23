@@ -1,3 +1,5 @@
+// The compiler isn't a true compiler; it just takes a Handyman spec, generates a Go
+// source file with the spec contents statically defined, and compiles it into a Go binary.
 package main
 
 import (
@@ -10,6 +12,11 @@ import (
 	"text/template"
 
 	"github.com/jefflinse/handyman/spec"
+)
+
+const (
+	// Template for main.go that gets stamped and compiled as the native binary.
+	codegenTemplateFile = "codegen/main.template"
 )
 
 var codePath string
@@ -49,12 +56,13 @@ func main() {
 
 func generateAppBinary(name string, specData []byte) error {
 	var err error
+
 	codePath, err = ioutil.TempDir("", fmt.Sprint("handyman-", name, "-"))
 	if err != nil {
 		return err
 	}
 
-	code, err := ioutil.ReadFile("codegen/main.template")
+	code, err := ioutil.ReadFile(codegenTemplateFile)
 	if err != nil {
 		return err
 	}
