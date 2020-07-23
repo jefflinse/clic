@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	osexec "os/exec"
-	"strings"
 
 	"github.com/jefflinse/handyman/provider"
 	"github.com/urfave/cli/v2"
@@ -12,7 +11,8 @@ import (
 
 // Spec describes the provider.
 type Spec struct {
-	Path string `json:"path"`
+	Name string   `json:"name"`
+	Args []string `json:"args"`
 }
 
 // New creates a new provider.
@@ -27,18 +27,17 @@ func New(v interface{}) (provider.Provider, error) {
 
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
-	command := osexec.Command("/bin/bash", "-c", s.Path)
-	output := strings.Builder{}
-	command.Stdout = &output
-	command.Stderr = &output
+	command := osexec.Command(s.Name, s.Args...)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
 	return func(ctx *cli.Context) error {
-		err := command.Run()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+		if err := command.Run(); err != nil {
+			if exitErr, ok := err.(*osexec.ExitError); ok {
+				os.Exit(exitErr.ProcessState.ExitCode())
+			}
 		}
 
-		fmt.Fprint(os.Stdout, output.String())
-		return err
+		return nil
 	}
 }
 
@@ -54,8 +53,8 @@ func (s Spec) Type() string {
 
 // Validate validates the provider.
 func (s Spec) Validate() error {
-	if s.Path == "" {
-		return fmt.Errorf("invalid %s command spec: missing path", s.Type())
+	if s.Name == "" {
+		return fmt.Errorf("invalid %s command spec: missing name", s.Type())
 	}
 
 	return nil
