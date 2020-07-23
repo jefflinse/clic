@@ -14,27 +14,22 @@ func TestNewApp(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:        "success, no commands",
+			name:        "succeeds when no commands are present",
 			json:        `{"name":"app","description":"the app"}`,
 			expectError: false,
 		},
 		{
-			name:        "success, with a valid command",
-			json:        `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"the cmd","type":"NOOP"}]}`,
+			name:        "succeeds with a valid command",
+			json:        `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"the cmd","noop":{}}]}`,
 			expectError: false,
 		},
 		{
-			name:        "success, with a valid command containing valid subcommand",
-			json:        `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"the cmd","type":"SUBCOMMANDS","subcommands":[{"name":"subcmd","description":"the subcmd","type":"NOOP"}]}]}`,
-			expectError: false,
-		},
-		{
-			name:        "failure, bad JSON",
+			name:        "fails on invalid JSON",
 			json:        `{"name":"app","description}`,
 			expectError: true,
 		},
 		{
-			name:        "failure, missing required field",
+			name:        "fails when spec is invalid",
 			json:        `{"name":"app"}`,
 			expectError: true,
 		},
