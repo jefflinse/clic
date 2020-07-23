@@ -14,27 +14,12 @@ func TestNewAppSpec(t *testing.T) {
 		valid bool
 	}{
 		{
-			name:  "valid JSON, no commands",
+			name:  "succeeds on valid JSON",
 			json:  `{"name":"app","description":"the app"}`,
 			valid: true,
 		},
 		{
-			name:  "valid JSON, with empty commands",
-			json:  `{"name":"app","description":"the app","commands":[]}`,
-			valid: true,
-		},
-		{
-			name:  "valid JSON, with one command",
-			json:  `{"name":"app","description":"the app","commands":[{"name":"cmd","description":"a command","type":"NOOP"}]}`,
-			valid: true,
-		},
-		{
-			name:  "valid JSON, with multiple commands",
-			json:  `{"name":"app","description":"the app","commands":[{"name":"cmd1","description":"a command","type":"NOOP"},{"name":"cmd2","description":"another command","type":"NOOP"}]}`,
-			valid: true,
-		},
-		{
-			name:  "invalid JSON",
+			name:  "fails on invalid JSON",
 			json:  `{"name":"app","description:"the app"}`,
 			valid: false,
 		},
@@ -57,86 +42,52 @@ func TestNewAppSpec(t *testing.T) {
 func TestApp_Validate(t *testing.T) {
 	tests := []struct {
 		name  string
-		app   spec.App
+		json  string
 		valid bool
 	}{
 		{
-			name: "valid, no commands",
-			app: spec.App{
-				Name:        "app",
-				Description: "the app",
-			},
+			name:  "is valid with just name and description",
+			json:  `{"name":"app","description":"app"}`,
 			valid: true,
 		},
 		{
-			name: "valid, with empty commands",
-			app: spec.App{
-				Name:        "app",
-				Description: "the app",
-				Commands:    []*spec.Command{},
-			},
+			name:  "is valid with empty command set",
+			json:  `{"name":"app","description":"app","commands":[]}`,
 			valid: true,
 		},
 		{
-			name: "valid, with one valid command",
-			app: spec.App{
-				Name:        "app",
-				Description: "the app",
-				Commands: []*spec.Command{
-					{
-						Name:        "cmd",
-						Description: "the cmd",
-					},
-				},
-			},
+			name:  "is valid with one command",
+			json:  `{"name":"app","description":"app","commands":[{"name":"cmd","description":"cmd","noop":{}}]}`,
 			valid: true,
 		},
 		{
-			name: "valid, with multiple valid commands",
-			app: spec.App{
-				Name:        "app",
-				Description: "the app",
-				Commands: []*spec.Command{
-					{
-						Name:        "cmd1",
-						Description: "a cmd",
-					},
-					{
-						Name:        "cmd2",
-						Description: "another cmd",
-					},
-				},
-			},
+			name:  "is valid with multiple valid commands",
+			json:  `{"name":"app","description":"app","commands":[{"name":"cmd1","description":"cmd1","noop":{}},{"name":"cmd2","description":"cmd2","noop":{}}]}`,
 			valid: true,
 		},
 		{
-			name:  "invalid, missing name",
-			app:   spec.App{Description: "the app"},
+			name:  "is invalid when missing name",
+			json:  `{"description":"app"}`,
 			valid: false,
 		},
 		{
-			name:  "invalid, missing description",
-			app:   spec.App{Name: "app"},
+			name:  "is invalid when missing description",
+			json:  `{"name":"app"}`,
 			valid: false,
 		},
 		{
-			name: "invalid, command is invalid",
-			app: spec.App{
-				Name:        "app",
-				Description: "the app",
-				Commands: []*spec.Command{
-					{
-						Name: "cmd1",
-					},
-				},
-			},
+			name:  "is invalid when any command is invalid",
+			json:  `{"name":"app","description":"app","commands":[{"name":"cmd1"},{"name":"cmd2","description":"cmd2","noop":{}}]}`,
 			valid: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := test.app.Validate()
+			app, err := spec.NewAppSpec([]byte(test.json))
+			assert.NoError(t, err)
+
+			err = app.Validate()
 			if test.valid {
 				assert.NoError(t, err)
 			} else {

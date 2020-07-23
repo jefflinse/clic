@@ -1,9 +1,9 @@
-package spec_test
+package lambda_test
 
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/handyman/command/lambda"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +37,7 @@ func TestNewParameterSpec(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s, err := spec.NewParamterSpec([]byte(test.json))
+			s, err := lambda.NewParameter([]byte(test.json))
 			if test.valid {
 				assert.NoError(t, err)
 				assert.NotNil(t, s)
@@ -52,63 +52,63 @@ func TestNewParameterSpec(t *testing.T) {
 func TestParameter_Validate(t *testing.T) {
 	tests := []struct {
 		name  string
-		param spec.Parameter
+		param lambda.Parameter
 		valid bool
 	}{
 		{
 			name: "valid bool",
-			param: spec.Parameter{
+			param: lambda.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        spec.BoolParamType,
+				Type:        lambda.BoolParamType,
 			},
 			valid: true,
 		},
 		{
 			name: "valid int",
-			param: spec.Parameter{
+			param: lambda.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        spec.IntParamType,
+				Type:        lambda.IntParamType,
 			},
 			valid: true,
 		},
 		{
 			name: "valid number",
-			param: spec.Parameter{
+			param: lambda.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        spec.NumberParamType,
+				Type:        lambda.NumberParamType,
 			},
 			valid: true,
 		},
 		{
 			name: "valid string",
-			param: spec.Parameter{
+			param: lambda.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        spec.StringParamType,
+				Type:        lambda.StringParamType,
 			},
 			valid: true,
 		},
 		{
 			name:  "invalid, missing name",
-			param: spec.Parameter{Description: "the param", Type: spec.StringParamType},
+			param: lambda.Parameter{Description: "the param", Type: lambda.StringParamType},
 			valid: false,
 		},
 		{
 			name:  "invalid, missing description",
-			param: spec.Parameter{Name: "param", Type: spec.StringParamType},
+			param: lambda.Parameter{Name: "param", Type: lambda.StringParamType},
 			valid: false,
 		},
 		{
 			name:  "invalid, missing type",
-			param: spec.Parameter{Name: "param", Description: "the param"},
+			param: lambda.Parameter{Name: "param", Description: "the param"},
 			valid: false,
 		},
 		{
 			name: "invalid parameter type",
-			param: spec.Parameter{
+			param: lambda.Parameter{
 				Name:        "param",
 				Description: "the param",
 				Type:        "invalid",
@@ -130,6 +130,6 @@ func TestParameter_Validate(t *testing.T) {
 }
 
 func TestNewInvalidParameterSpecError(t *testing.T) {
-	err := spec.NewInvalidParameterSpecError("the reason")
+	err := lambda.NewInvalidParameterSpecError("the reason")
 	assert.EqualError(t, err, "invalid parameter spec: the reason")
 }

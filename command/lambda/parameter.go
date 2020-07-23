@@ -1,4 +1,4 @@
-package spec
+package lambda
 
 import (
 	"encoding/json"
@@ -27,8 +27,8 @@ const (
 	StringParamType = "string"
 )
 
-// NewParamterSpec creates a new Parameter from the provided spec.
-func NewParamterSpec(content []byte) (*Parameter, error) {
+// NewParameter creates a new Parameter from the provided spec.
+func NewParameter(content []byte) (*Parameter, error) {
 	param := &Parameter{}
 	if err := json.Unmarshal(content, param); err != nil {
 		return nil, err

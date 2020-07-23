@@ -2,6 +2,7 @@ package exec
 
 import (
 	"fmt"
+	"os"
 	osexec "os/exec"
 	"strings"
 
@@ -32,7 +33,11 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 	command.Stderr = &output
 	return func(ctx *cli.Context) error {
 		err := command.Run()
-		fmt.Print(output.String())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+
+		fmt.Fprint(os.Stdout, output.String())
 		return err
 	}
 }

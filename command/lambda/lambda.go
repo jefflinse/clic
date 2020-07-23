@@ -19,13 +19,6 @@ type Spec struct {
 	RequestParams []Parameter `json:"request_params,omitempty"`
 }
 
-type Parameter struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Description string `json:"description,omitempty"`
-	Required    bool   `json:"required"`
-}
-
 // New creates a new executor.
 func New(v interface{}) (command.Executor, error) {
 	s := Spec{}
@@ -61,9 +54,11 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 
 		response, functionError, err := executeLambda(s.ARN, request)
 		if err != nil {
+			fmt.Fprint(os.Stderr, err)
 			return err
 		} else if functionError != nil {
 			fmt.Fprint(os.Stderr, *functionError)
+			return nil
 		}
 
 		fmt.Print(string(response))

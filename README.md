@@ -87,12 +87,8 @@ A command spec has the following properties:
 | Propery | Description | Type | Required |
 | ------- | ----------- | ---- | -------- |
 | `name` | The name of the command as invoked on the command line. | string | true |
-| `type` | The [type](#command-types) of command. | string | true |
 | `description` | A description of the command. | string | true |
-| `subcommands` | A set of commmand specs. | array | when `type=SUBCOMMANDS` |
-| `exec` | The local shell command to execute. | string |when `type=EXEC` |
-| `lambda_arn` | The ARN of an AWS Lambda function. | string |when `type=LAMBDA` |
-| `lambda_request_parameters` | A set of request [Parameters](#parameter) accepted by the Lambda function. | array |when `type=LAMBDA` |
+| `<type>` | A command type specific object describing details and parameters of the command. | object | false |
 
 ### Parameter
 
@@ -111,13 +107,13 @@ Handyman supports the following command types:
 
 | Type | Description | Required Fields | Optional Fields |
 | ---- | ----------- | --------------- | --------------- |
-| `EXEC` | Execute a local shell command | `exec` | |
-| `LAMBDA` | Execute an AWS lambda function | `lambda_arn` | `lambda_request_parameters` |
-| `NOOP` | Do nothing (no-op) |  |  |
+| `exec` | Execute a local shell command | `exec` | |
+| `lambda` | Execute an AWS lambda function | `lambda_arn` | `lambda_request_parameters` |
+| `noop` | Do nothing (no-op) |  |  |
 
 ### Exec
 
-An `EXEC` command runs a local shell command on the current system. It is akin to opening a shell and issuing the command normally.
+An `exec` command runs a local shell command on the current system. It is akin to opening a shell and issuing the command normally.
 
 Here's an example of a command that prints the current year:
 
@@ -125,14 +121,15 @@ Here's an example of a command that prints the current year:
 {
     "name": "current-year",
     "description": "Show the current year",
-    "type": "EXEC",
-    "exec": "date +Y"
+    "exec": {
+        "path": "date +Y"
+    }
 }
 ```
 
 ### Lambda
 
-A `LAMBDA` command executes an AWS Lambda function. It prints the response to stdout and any errors to stderr, respectively. When using this command type, the command spec must include the ARN of the Lambda to execute, and optionally any request parameters to be included. The request parameters are available as command line flags in the app.
+A `lambda` command executes an AWS Lambda function. It prints the response to stdout and any errors to stderr, respectively. When using this command type, the command spec must include the ARN of the Lambda to execute, and optionally any request parameters to be included. The request parameters are available as command line flags in the app.
 
 Here's an example of a command that invokes a lambda function that accepts a single request parameter called `site_name`:
 
@@ -140,16 +137,17 @@ Here's an example of a command that invokes a lambda function that accepts a sin
 {
     "name": "update-site-name",
     "description": "update the website name",
-    "type": "LAMBDA",
-    "lambda_arn": "aws:arn:us-west-2:1234567890:lambda:function:update-site-name:$LATEST",
-    "lambda_request_parameters": [
-        {
-            "name": "site_name",
-            "type": "string",
-            "description": "the name of the website",
-            "required": true
-        }
-    ]
+    "lambda" {
+        "arn": "aws:arn:us-west-2:1234567890:lambda:function:update-site-name:$LATEST",
+        "request_params": [
+            {
+                "name": "site_name",
+                "type": "string",
+                "description": "the name of the website",
+                "required": true
+            }
+        ]
+    }
 }
 ```
 
@@ -162,8 +160,7 @@ A `NOOP` command does nothing; it's truely a no-op. This is useful in scenarios 
 ```json
 {
     "name": "do-nothing",
-    "description": "does absolutely nothing",
-    "type": "NOOP"
+    "description": "does absolutely nothing"
 }
 ```
 
@@ -177,19 +174,20 @@ At least one subcommand must be defined.
 {
     "name": "inventory",
     "description": "manage inventory",
-    "type": "SUBCOMMANDS",
     "subcommands": [
         {
             "name": "add-item",
             "description": "add an item to inventory",
-            "type": "LAMBDA",
-            "lambda_arn": "some:lambda:arn"
+            "lambda":{
+                "arn": "some:lambda:arn"
+            }
         },
         {
             "name": "clear-local-cache",
             "description": "clear the local inventory cache",
-            "type": "EXEC",
-            "exec": "/usr/local/bin/clearcache"
+            "exec": {
+                "path": "/usr/local/bin/clearcache"
+            }
         },
     ]
 }

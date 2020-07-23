@@ -49,17 +49,6 @@ func (c Command) CLICommand() *cli.Command {
 	}
 }
 
-// Validate validates a Command spec.
-func (c Command) Validate() error {
-	if c.Name == "" {
-		return NewInvalidCommandSpecError("missing name")
-	} else if c.Description == "" {
-		return NewInvalidCommandSpecError("missing description")
-	}
-
-	return c.Executor.Validate()
-}
-
 // UnmarshalJSON unmarshals the specified JSON data into the command.
 func (c *Command) UnmarshalJSON(data []byte) error {
 	type commandMetadata struct {
@@ -80,47 +69,49 @@ func (c *Command) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	executorName := "noop"
-	if len(content) < len(requiredCommandFields) {
-		return fmt.Errorf("too few fields for command")
+	// the executor type is the remaining non-required field name
+	if len(content) == len(requiredCommandFields) {
+		// don't bother looking for an executor if not enough fields are provided
+		return nil
 	} else if len(content) > len(requiredCommandFields) {
-		potentialExecutorNames := []string{}
 		for key := range content {
-			keyIsRequiredField := false
+			isRequiredField := false
 			for _, field := range requiredCommandFields {
 				if key == field {
-					keyIsRequiredField = true
+					isRequiredField = true
 					break
 				}
 			}
 
-			if keyIsRequiredField {
-				continue
+			// use the first available executor we match
+			if !isRequiredField {
+				if executorCtor, ok := commandMap[key]; ok {
+					executor, err := executorCtor(content[key])
+					if err != nil {
+						return err
+					}
+
+					c.Executor = executor
+					return nil
+				}
 			}
-
-			potentialExecutorNames = append(potentialExecutorNames, key)
 		}
-
-		if len(potentialExecutorNames) != 1 {
-			return fmt.Errorf("invalid type data")
-		}
-
-		executorName = potentialExecutorNames[0]
 	}
-
-	executorCtor, ok := commandMap[executorName]
-	if !ok {
-		return fmt.Errorf("invalid type '%s'", executorName)
-	}
-
-	executor, err := executorCtor(content[executorName])
-	if err != nil {
-		return fmt.Errorf("can't create executor: %w", err)
-	}
-
-	c.Executor = executor
 
 	return nil
+}
+
+// Validate validates a Command spec.
+func (c Command) Validate() error {
+	if c.Name == "" {
+		return NewInvalidCommandSpecError("missing name")
+	} else if c.Description == "" {
+		return NewInvalidCommandSpecError("missing description")
+	} else if c.Executor == nil {
+		return NewInvalidCommandSpecError("missing executor")
+	}
+
+	return c.Executor.Validate()
 }
 
 // NewInvalidCommandSpecError creates a new error indicating that a command spec is invalid.
