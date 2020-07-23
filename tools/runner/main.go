@@ -21,6 +21,8 @@ func main() {
 	app, err := handyman.NewApp(content)
 	fatalOn(err, "failed to create app")
 
+	// join the runner binary and spec filename into
+	// a single string to be used as arg[0] of the app
 	args := []string{}
 	if len(os.Args) > 2 {
 		args = append(args, os.Args[2:]...)
