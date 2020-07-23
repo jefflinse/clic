@@ -28,6 +28,8 @@ func New(v interface{}) (provider.Provider, error) {
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	command := osexec.Command(s.Name, s.Args...)
+	command.Env = os.Environ()
+	command.Stdin = os.Stdin
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	return func(ctx *cli.Context) error {
