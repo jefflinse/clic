@@ -3,8 +3,11 @@ package spec_test
 import (
 	"testing"
 
+	"github.com/jefflinse/handyman/provider"
+	"github.com/jefflinse/handyman/provider/noop"
 	"github.com/jefflinse/handyman/spec"
 	"github.com/stretchr/testify/assert"
+	"github.com/urfave/cli/v2"
 )
 
 func TestNewCommandSpec(t *testing.T) {
@@ -40,6 +43,36 @@ func TestNewCommandSpec(t *testing.T) {
 				assert.Error(t, err)
 				assert.Nil(t, s)
 			}
+		})
+	}
+}
+
+func TestCommand_CLICommand(t *testing.T) {
+	noopProvider := func() provider.Provider {
+		prov, _ := noop.New(nil)
+		return prov
+	}
+
+	tests := []struct {
+		name     string
+		cmd      *spec.Command
+		validate func(cliCmd *cli.Command)
+	}{
+		{
+			name: "assigns name and usage",
+			cmd:  &spec.Command{Name: "foo", Description: "bar", Provider: noopProvider()},
+			validate: func(cliCmd *cli.Command) {
+				assert.Equal(t, "foo", cliCmd.Name)
+				assert.Equal(t, "bar", cliCmd.Usage)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cliCmd := test.cmd.CLICommand()
+			assert.NotNil(t, cliCmd)
+			test.validate(cliCmd)
 		})
 	}
 }
