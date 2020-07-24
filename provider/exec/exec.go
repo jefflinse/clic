@@ -5,6 +5,7 @@ import (
 	"os"
 	osexec "os/exec"
 
+	"github.com/jefflinse/handyman/ioutil"
 	"github.com/jefflinse/handyman/provider"
 	"github.com/urfave/cli/v2"
 )
@@ -18,11 +19,7 @@ type Spec struct {
 // New creates a new provider.
 func New(v interface{}) (provider.Provider, error) {
 	s := Spec{}
-	if err := provider.Intermarshal(v, &s); err != nil {
-		return nil, err
-	}
-
-	return &s, nil
+	return &s, ioutil.Intermarshal(v, &s)
 }
 
 // CLIActionFn creates a CLI action fuction.

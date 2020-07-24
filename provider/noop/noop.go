@@ -11,6 +11,7 @@ type Spec struct {
 
 // New creates a new provider.
 func New(v interface{}) (provider.Provider, error) {
+	// all properties on a noop command are ignored
 	return &Spec{}, nil
 }
 

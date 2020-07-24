@@ -1,8 +1,6 @@
 package provider
 
 import (
-	"encoding/json"
-
 	"github.com/urfave/cli/v2"
 )
 
@@ -12,18 +10,4 @@ type Provider interface {
 	CLIFlags() []cli.Flag
 	Type() string
 	Validate() error
-}
-
-// Intermarshal marshals the (unknown) provider object to JSON and then unmarshals it back to the target type.
-func Intermarshal(provider interface{}, target interface{}) error {
-	data, err := json.Marshal(provider)
-	if err != nil {
-		return err
-	}
-
-	if err := json.Unmarshal(data, &target); err != nil {
-		return err
-	}
-
-	return nil
 }

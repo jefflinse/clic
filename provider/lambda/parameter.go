@@ -1,10 +1,9 @@
 package lambda
 
 import (
-	"encoding/json"
 	"fmt"
 
-	"github.com/goccy/go-yaml"
+	"github.com/jefflinse/handyman/ioutil"
 )
 
 // A Parameter specifies a command parameter.
@@ -32,19 +31,8 @@ const (
 // NewParameter creates a new Parameter from the provided spec.
 func NewParameter(content []byte) (*Parameter, error) {
 	param := &Parameter{}
-	if len(content) == 0 {
-		return nil, NewInvalidParameterSpecError("parameter spec is empty")
-	}
-
-	if content[0] == '{' {
-		// assume JSON
-		if err := json.Unmarshal(content, param); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := yaml.Unmarshal(content, param); err != nil {
-			return nil, err
-		}
+	if err := ioutil.Unmarshal(content, param); err != nil {
+		return nil, NewInvalidParameterSpecError(err.Error())
 	}
 
 	return param, nil
