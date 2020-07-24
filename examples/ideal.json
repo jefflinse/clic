@@ -9,15 +9,7 @@
     "vars": {
         "_doc": "These variables can be referenced elsewhere in the doc using $(varname).",
         "my-api-base-url": "https://api.example.com/v2",
-        "my-lambda-arn": "aws:arn:region:account:lambda:function:name:version",
-        "some-bool": true,
-        "a-number": 3.14,
-        "an-object": {
-            "hello": "world"
-        },
-        "an-array": [
-            "foo"
-        ]
+        "my-lambda-arn": "aws:arn:region:account:lambda:function:name:version"
     },
     "commands": {
         "noop-command": {

@@ -3,14 +3,16 @@ package lambda
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/goccy/go-yaml"
 )
 
 // A Parameter specifies a command parameter.
 type Parameter struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Type        string `json:"type"`
-	Required    bool   `json:"required,omitempty"`
+	Name        string `json:"name"               yaml:"name"`
+	Description string `json:"description"        yaml:"description"`
+	Type        string `json:"type"               yaml:"type"`
+	Required    bool   `json:"required,omitempty" yaml:"required,omitempty"`
 }
 
 const (
@@ -30,8 +32,19 @@ const (
 // NewParameter creates a new Parameter from the provided spec.
 func NewParameter(content []byte) (*Parameter, error) {
 	param := &Parameter{}
-	if err := json.Unmarshal(content, param); err != nil {
-		return nil, err
+	if len(content) == 0 {
+		return nil, NewInvalidParameterSpecError("parameter spec is empty")
+	}
+
+	if content[0] == '{' {
+		// assume JSON
+		if err := json.Unmarshal(content, param); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := yaml.Unmarshal(content, param); err != nil {
+			return nil, err
+		}
 	}
 
 	return param, nil

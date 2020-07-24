@@ -9,25 +9,40 @@ import (
 
 func TestNewAppSpec(t *testing.T) {
 	tests := []struct {
-		name  string
-		json  string
-		valid bool
+		name    string
+		content string
+		valid   bool
 	}{
 		{
-			name:  "succeeds on valid JSON",
-			json:  `{"name":"app","description":"the app"}`,
-			valid: true,
+			name:    "succeeds on valid JSON",
+			content: `{"name":"app","description":"the app"}`,
+			valid:   true,
 		},
 		{
-			name:  "fails on invalid JSON",
-			json:  `{"name":"app","description:"the app"}`,
-			valid: false,
+			name:    "succeeds on valid YAML",
+			content: "name: app\ndescription: the app",
+			valid:   true,
+		},
+		{
+			name:    "fails on empty content",
+			content: ``,
+			valid:   false,
+		},
+		{
+			name:    "fails on invalid JSON",
+			content: `{"name":"app","description:"the app"}`,
+			valid:   false,
+		},
+		{
+			name:    "fails on invalid YAML",
+			content: "name",
+			valid:   false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s, err := spec.NewAppSpec([]byte(test.json))
+			s, err := spec.NewAppSpec([]byte(test.content))
 			if test.valid {
 				assert.NoError(t, err)
 				assert.NotNil(t, s)

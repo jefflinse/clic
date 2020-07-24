@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/goccy/go-yaml"
 	"github.com/jefflinse/handyman/provider"
 	"github.com/jefflinse/handyman/provider/exec"
 	"github.com/jefflinse/handyman/provider/lambda"
@@ -13,9 +14,9 @@ import (
 
 // A Command specifes an action or a set of subcommands.
 type Command struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Provider    provider.Provider `json:"-"`
+	Name        string            `json:"name"        yaml:"name"`
+	Description string            `json:"description" yaml:"description"`
+	Provider    provider.Provider `json:"-"           yaml:"-"`
 }
 
 var requiredCommandFields = []string{
@@ -31,9 +32,20 @@ var commandMap = map[string]func(interface{}) (provider.Provider, error){
 
 // NewCommandSpec creates a new Command from the provided spec.
 func NewCommandSpec(content []byte) (*Command, error) {
+	if len(content) == 0 {
+		return nil, NewInvalidCommandSpecError("spec is empty")
+	}
+
 	command := &Command{}
-	if err := json.Unmarshal(content, command); err != nil {
-		return nil, err
+	if content[0] == '{' {
+		// assume JSON
+		if err := json.Unmarshal(content, command); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := yaml.Unmarshal(content, command); err != nil {
+			return nil, err
+		}
 	}
 
 	return command, nil
@@ -66,6 +78,58 @@ func (c *Command) UnmarshalJSON(data []byte) error {
 
 	content := map[string]interface{}{}
 	if err := json.Unmarshal(data, &content); err != nil {
+		return err
+	}
+
+	// the provider type is the remaining non-required field name
+	if len(content) == len(requiredCommandFields) {
+		// don't bother looking for a provider if not enough fields are provided
+		return nil
+	} else if len(content) > len(requiredCommandFields) {
+		for key := range content {
+			isRequiredField := false
+			for _, field := range requiredCommandFields {
+				if key == field {
+					isRequiredField = true
+					break
+				}
+			}
+
+			// use the first available provider we match
+			if !isRequiredField {
+				if providerCtor, ok := commandMap[key]; ok {
+					provider, err := providerCtor(content[key])
+					if err != nil {
+						return err
+					}
+
+					c.Provider = provider
+					return nil
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// UnmarshalYAML unmarshals the specified YAML data into the command.
+func (c *Command) UnmarshalYAML(data []byte) error {
+	type commandMetadata struct {
+		Name        string `yaml:"name"`
+		Description string `yaml:"description"`
+	}
+
+	metadata := commandMetadata{}
+	if err := yaml.Unmarshal(data, &metadata); err != nil {
+		return err
+	}
+
+	c.Name = metadata.Name
+	c.Description = metadata.Description
+
+	content := map[string]interface{}{}
+	if err := yaml.Unmarshal(data, &content); err != nil {
 		return err
 	}
 

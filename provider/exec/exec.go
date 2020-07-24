@@ -11,8 +11,8 @@ import (
 
 // Spec describes the provider.
 type Spec struct {
-	Name string   `json:"name"`
-	Args []string `json:"args"`
+	Name string   `json:"name"           yaml:"name"`
+	Args []string `json:"args,omitempty" yaml:"args,omitempty"`
 }
 
 // New creates a new provider.

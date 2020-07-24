@@ -3,20 +3,33 @@ package spec
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/goccy/go-yaml"
 )
 
 // An App specifies a complete Handyman application.
 type App struct {
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Commands    []*Command `json:"commands"`
+	Name        string     `json:"name"        yaml:"name"`
+	Description string     `json:"description" yaml:"description"`
+	Commands    []*Command `json:"commands"    yaml:"commands"`
 }
 
 // NewAppSpec creates a new App from the provided spec.
 func NewAppSpec(content []byte) (*App, error) {
+	if len(content) == 0 {
+		return nil, NewInvalidAppSpecError("spec is empty")
+	}
+
 	app := &App{}
-	if err := json.Unmarshal(content, app); err != nil {
-		return nil, err
+	if content[0] == '{' {
+		// assume JSON
+		if err := json.Unmarshal(content, app); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := yaml.Unmarshal(content, app); err != nil {
+			return nil, err
+		}
 	}
 
 	return app, nil

@@ -9,35 +9,50 @@ import (
 
 func TestNewParameterSpec(t *testing.T) {
 	tests := []struct {
-		name  string
-		json  string
-		valid bool
+		name    string
+		content string
+		valid   bool
 	}{
 		{
-			name:  "valid parameter, required not specified",
-			json:  `{"name":"param","description":"the param","type":"string"}`,
-			valid: true,
+			name:    "succeeds on valid JSON",
+			content: `{"name":"cmd","description":"the cmd"}`,
+			valid:   true,
 		},
 		{
-			name:  "valid parameter, required is specified",
-			json:  `{"name":"param","description":"the param","type":"string","required":true}`,
-			valid: true,
+			name:    "succeeds on valid YAML",
+			content: "name: cmd\ndescription: the cmd",
+			valid:   true,
 		},
 		{
-			name:  "invalid JSON, required specified as string",
-			json:  `{"name":"param","description:"the param","type":"string","required":"true"}`,
-			valid: false,
+			name:    "json parsing succeeds even if provider type isn't recognized",
+			content: `{"name":"cmd","description":"the cmd","invalid":{"foo":"bar"}}`,
+			valid:   true,
 		},
 		{
-			name:  "invalid JSON, malformed",
-			json:  `{"name":"param","description:"the param","type":"string"`,
-			valid: false,
+			name:    "yaml parsing succeeds even if provider type isn't recognized",
+			content: "name: cmd\ndescription: the cmd\ninvalid:\n  foo: bar",
+			valid:   true,
+		},
+		{
+			name:    "fails on empty content",
+			content: ``,
+			valid:   false,
+		},
+		{
+			name:    "fails on invalid JSON",
+			content: `{"name":"cmd","description:"the cmd"`,
+			valid:   false,
+		},
+		{
+			name:    "fails on invalid YAML",
+			content: "name",
+			valid:   false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s, err := lambda.NewParameter([]byte(test.json))
+			s, err := lambda.NewParameter([]byte(test.content))
 			if test.valid {
 				assert.NoError(t, err)
 				assert.NotNil(t, s)

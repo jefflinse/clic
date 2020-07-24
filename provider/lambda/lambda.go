@@ -15,8 +15,8 @@ import (
 
 // Spec describes the provider.
 type Spec struct {
-	ARN           string      `json:"arn"`
-	RequestParams []Parameter `json:"request_params,omitempty"`
+	ARN           string      `json:"arn"                      yaml:"arn"`
+	RequestParams []Parameter `json:"request_params,omitempty" yaml:"request_params,omitempty"`
 }
 
 // New creates a new provider.
