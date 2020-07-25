@@ -19,13 +19,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Build
-      run: |
-        go build
-        pushd spec && go build && popd
-        pushd runner && go build && popd
+      run: make build
 
     - name: Test
-      run: |
-        go test
-        pushd spec && go test && popd
-        pushd runner && go test && popd
+      run: make test
