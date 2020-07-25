@@ -13,10 +13,9 @@ Handyman is a set of tools that allow you to compose, generate, and run custom C
   - [Command](#command)
   - [Parameter](#parameter)
 - [Command Types](#command-types)
-  - [EXEC](#Exec)
-  - [LAMBDA](#Lambda)
-  - [NOOP](#Noop)
-  - [SUBCOMMANDS](#Subcommands)
+  - [exec - run any local command](#exec)
+  - [lambda - execute an AWS lambda function](#lambda)
+  - [noop - do nothing](#noop)
 - [Roadmap](#roadmap)
 
 ## Overview
