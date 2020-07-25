@@ -1,8 +1,10 @@
-# Handyman - Do All Sorts of Things
+# Handyman
 
 ![CI](https://github.com/jefflinse/handyman/workflows/CI/badge.svg?branch=master)
 
-Compose, generate, and run custom CLI tools using simple JSON specs.
+**Don't write CLI tools to manage your services; generate them!**
+
+Handyman is a set of tools that allow you to compose, generate, and run custom CLI tools using simple text-based configuration files.
 
 - [Overview](#overview)
 - [Quickstart](#quickstart)
@@ -19,38 +21,36 @@ Compose, generate, and run custom CLI tools using simple JSON specs.
 
 ## Overview
 
-Handyman is a set of tools for generating CLI applications from JSON specs and running them. Rather than maintaining source code for a command line tool whose command set frequently changes, Handyman lets you define a command hierarchy in a simple JSON spec. This spec can either be run directly or precompiled into a native Go binary.
+If you frequently find yourself writing shell scripts make calling various web services and cloud resources easier, Handyman is for you. Handyman lets you define a hierarchy of command line tools using a simple YAML or JSON configuation file.
+
+Handyman is built around the concept of commands, each of which is handled by a command provider. Providers define what happens when a command runs, such as executing a local command, calling a REST endpoint, interacting with a cloud resource, and so forth.
 
 ## Quickstart
 
 Create a Handyman spec:
 
-`myapp.json`:
+`myapp.yml`:
 
-```json
-{
-    "name": "myapp",
-    "description": "An example of a Handyman app",
-    "commands": [
-        {
-            "name": "say-hello",
-            "description": "prints a greeting to the world",
-            "type": "EXEC",
-            "exec": "echo Hello, World!"
-        }
-    ]
-}
+```yaml
+name: myapp
+description: an example of a Handyman app
+commands:
+  - name: say-hello
+    description: prints a greeting to the world
+    exec:
+      path: "echo"
+      args: ["Hello, World!"]
 ```
 
 The `runner` tool runs a Handyman spec as an app on-the-fly. Its only required argument is the path to a spec file; all remaining arguments are passed to the app.
 
-Run the spec without any additional arguments to view its usage:
+Run the app spec without any additional arguments to view its usage:
 
 ```bash
-$ runner ./myapp.json
+$ runner myapp.json
 
 NAME:
-   myapp - An example of a Handyman app
+   myapp - an example of a Handyman app
 
 USAGE:
    myapp  command [command options] [arguments...]
@@ -59,16 +59,47 @@ COMMANDS:
    say-hello  prints a greeting to the world
 ```
 
-Now run the `say-hello` command:
+Now run our app spec with the `say-hello` command:
 
 ```bash
-$ runner ./myapp.json say-hello
+$ runner myapp.json say-hello
 Hello, World!
 ```
 
+The `compiler` tool compiles a Handyman app spec into a native Go binary. Let's compile our app:
+
+```bash
+$ compiler myapp.json
+
+$ ls
+myapp*     myapp.yml
+```
+
+Now we can run it directly:
+
+```bash
+$ ./myapp
+
+NAME:
+   myapp - an example of a Handyman app
+
+USAGE:
+   myapp  command [command options] [arguments...]
+
+COMMANDS:
+   say-hello  prints a greeting to the world
+```
+
+```bash
+$ ./myapp say-hello
+Hello, World!
+```
+
+Handyman can do a lot more than just call local commands. See the complete list of [Command Types](#command-types) to learn more.
+
 ## Specification Format
 
-A Handyman spec is a JSON file. The root object describes the application, which contains one or more commands, each of which can contain any number of nested subcommands.
+A Handyman spec can be written in either YAML or JSON. The root object describes the application, which contains one or more commands, each of which can contain any number of nested subcommands.
 
 ### App
 
@@ -88,7 +119,9 @@ A command spec has the following properties:
 | ------- | ----------- | ---- | -------- |
 | `name` | The name of the command as invoked on the command line. | string | true |
 | `description` | A description of the command. | string | true |
-| `<type>` | A command type specific object describing details and parameters of the command. | object | false |
+| `<type>` | Configuration for the provider that executes the logic for the command. | object | true |
+
+`<type>` must be the name of a supported command type, and its value must be an object defining the configuration for that command type. See [Command Types](#command-types) for information how how to configure each command type.
 
 ### Parameter
 
@@ -98,112 +131,66 @@ Some commands take additional parameters. Each parameter spec has the following 
 | ------- | ----------- | ---- | -------- |
 | `name` | The name of the parameter. Must use snake_casing. | string | true |
 | `description` | A description of the parameter. | string | true |
-| `type` | The type of value the parameter accepts. | string | true |
+| `type` | The type of value the parameter accepts. Must be one of [**int**, **number**, **string**]. | string | true |
 | `required` | Whether or not the parameter is required. Default is false. | bool | false |
 
 ## Command Types
 
-Handyman supports the following command types:
+- [exec](#exec)
+- [lambda](#lambda)
+- [noop](#noop)
 
-| Type | Description | Required Fields | Optional Fields |
-| ---- | ----------- | --------------- | --------------- |
-| `exec` | Execute a local shell command | `exec` | |
-| `lambda` | Execute an AWS lambda function | `lambda_arn` | `lambda_request_parameters` |
-| `noop` | Do nothing (no-op) |  |  |
+### exec
 
-### Exec
+An `exec` command runs a local command. It executes the provided command, directly passing any supplied arguments.
 
-An `exec` command runs a local shell command on the current system. It is akin to opening a shell and issuing the command normally.
-
-Here's an example of a command that prints the current year:
-
-```json
-{
-    "name": "current-year",
-    "description": "Show the current year",
-    "exec": {
-        "path": "date +Y"
-    }
-}
+```yaml
+name: current-year
+description: print the current year
+exec:
+  name: date
+  args: ["+Y"]
 ```
 
-### Lambda
+### lambda
 
 A `lambda` command executes an AWS Lambda function. It prints the response to stdout and any errors to stderr, respectively. When using this command type, the command spec must include the ARN of the Lambda to execute, and optionally any request parameters to be included. The request parameters are available as command line flags in the app.
 
 Here's an example of a command that invokes a lambda function that accepts a single request parameter called `site_name`:
 
-```json
-{
-    "name": "update-site-name",
-    "description": "update the website name",
-    "lambda" {
-        "arn": "aws:arn:us-west-2:1234567890:lambda:function:update-site-name:$LATEST",
-        "request_params": [
-            {
-                "name": "site_name",
-                "type": "string",
-                "description": "the name of the website",
-                "required": true
-            }
-        ]
-    }
-}
+```yaml
+name: update-site-name
+description: update the website name
+lambda:
+  arn: "aws:arn:some:valid:arn"
+  request_params:
+    - name: site_name
+      type: string
+      description: the name of the website
+      required: true
 ```
 
 > **Note:** The command name does not need to match the Lambda function's name.
 
-### Noop
+### noop
 
-A `NOOP` command does nothing; it's truely a no-op. This is useful in scenarios where you might want to mock our your entire app's command struture in an app spec before specifying the actual behavior of each action.
+A `noop` command does nothing; it's truely a no-op. This is useful in scenarios where you might want to mock our your entire app's command struture in an app spec before specifying the actual behavior of each action.
 
-```json
-{
-    "name": "do-nothing",
-    "description": "does absolutely nothing"
-}
-```
-
-### Subcommands
-
-A `SUBCOMMANDS` command contains one or more subcommands. Each subcommand is defined by a command spec and may itself be a `SUBCOMMANDS` type containing other subcommands.
-
-At least one subcommand must be defined.
-
-```json
-{
-    "name": "inventory",
-    "description": "manage inventory",
-    "subcommands": [
-        {
-            "name": "add-item",
-            "description": "add an item to inventory",
-            "lambda":{
-                "arn": "some:lambda:arn"
-            }
-        },
-        {
-            "name": "clear-local-cache",
-            "description": "clear the local inventory cache",
-            "exec": {
-                "path": "/usr/local/bin/clearcache"
-            }
-        },
-    ]
-}
+```yaml
+name: do-nothing
+description: does absolutely nothing
+noop:
 ```
 
 ## Roadmap
 
 A very rough list of features and improvements I have in mind:
 
-- Codegen to produce a native Go binary from a spec
-- Codegen for other langauges
 - App-level and command-level versioning
-- Remove bash shell dependency from EXEC commands
-- Support additional parameter types:
-  - natives (int, number, bool)
-  - binary data
-- Support reading parameter values from files
+- Support for app- and command-level variables
 - Support directory-based spec composition (a la Terraform)
+- Exec provider should support parameters
+- Add REST provider for calling endpoints
+- Support reading parameter values from files
+- Support for producing binaries/scripts for other languages
 - Improved unit test coverage
