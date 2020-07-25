@@ -28,7 +28,7 @@ Handyman is built around the concept of commands, each of which is handled by a 
 
 Create a Handyman spec:
 
-`myapp.yml`:
+**myapp.yml**:
 
 ```yaml
 name: myapp
@@ -46,7 +46,7 @@ The `runner` tool runs a Handyman spec as an app on-the-fly. Its only required a
 Run the app spec without any additional arguments to view its usage:
 
 ```bash
-$ runner myapp.json
+$ runner myapp.yml
 
 NAME:
    myapp - an example of a Handyman app
@@ -61,17 +61,17 @@ COMMANDS:
 Now run our app spec with the `say-hello` command:
 
 ```bash
-$ runner myapp.json say-hello
+$ runner myapp.yml say-hello
 Hello, World!
 ```
 
 The `compiler` tool compiles a Handyman app spec into a native Go binary. Let's compile our app:
 
 ```bash
-$ compiler myapp.json
+$ compiler myapp.yml
 
 $ ls
-myapp*     myapp.yml
+myapp     myapp.yml
 ```
 
 Now we can run it directly:
