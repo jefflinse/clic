@@ -1,8 +1,8 @@
 # Handyman
 
-![CI](https://github.com/jefflinse/handyman/workflows/CI/badge.svg?branch=master)
+![build status](https://img.shields.io/github/workflow/status/jefflinse/handyman/CI) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/handyman)
 
-**Don't write CLI tools to manage your services; generate them!**
+Don't write CLI tools to manage your services; **generate them!**
 
 Handyman is a set of tools that allow you to define, generate, and run custom CLI tools using simple text-based configuration files.
 
