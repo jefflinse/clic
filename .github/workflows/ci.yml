@@ -23,3 +23,9 @@ jobs:
 
     - name: Test
       run: make test
+
+    - name: Bump and Tag Version
+      uses: anothrNick/github-tag-action@1.22.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: true

@@ -4,7 +4,7 @@
 
 **Don't write CLI tools to manage your services; generate them!**
 
-Handyman is a set of tools that allow you to compose, generate, and run custom CLI tools using simple text-based configuration files.
+Handyman is a set of tools that allow you to define, generate, and run custom CLI tools using simple text-based configuration files.
 
 - [Overview](#overview)
 - [Quickstart](#quickstart)
@@ -20,7 +20,7 @@ Handyman is a set of tools that allow you to compose, generate, and run custom C
 
 ## Overview
 
-If you frequently find yourself writing shell scripts make calling various web services and cloud resources easier, Handyman is for you. Handyman lets you define a hierarchy of command line tools using a simple YAML or JSON configuation file.
+If you often find yourself writing shell scripts or similar to make calling and testing various web services and cloud resources easier, Handyman is for you. Handyman lets you define a hierarchy of command line tools using a simple YAML or JSON configuation file.
 
 Handyman is built around the concept of commands, each of which is handled by a command provider. Providers define what happens when a command runs, such as executing a local command, calling a REST endpoint, interacting with a cloud resource, and so forth.
 
