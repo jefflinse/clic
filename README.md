@@ -47,15 +47,13 @@ Run the app spec without any additional arguments to view its usage:
 
 ```bash
 $ runner myapp.yml
+myapp - an example of a Handyman app
 
-NAME:
-   myapp - an example of a Handyman app
+usage:
+  myapp  command [command options] [arguments...]
 
-USAGE:
-   myapp  command [command options] [arguments...]
-
-COMMANDS:
-   say-hello  prints a greeting to the world
+commands:
+  say-hello  prints a greeting to the world
 ```
 
 Now run our app spec with the `say-hello` command:
@@ -78,15 +76,13 @@ Now we can run it directly:
 
 ```bash
 $ ./myapp
+myapp - an example of a Handyman app
 
-NAME:
-   myapp - an example of a Handyman app
+usage:
+  myapp  command [command options] [arguments...]
 
-USAGE:
-   myapp  command [command options] [arguments...]
-
-COMMANDS:
-   say-hello  prints a greeting to the world
+commands:
+  say-hello  prints a greeting to the world
 ```
 
 ```bash
@@ -94,7 +90,7 @@ $ ./myapp say-hello
 Hello, World!
 ```
 
-Handyman can do a lot more than just call local commands. See the complete list of [Command Types](#command-types) to learn more.
+Handyman can do more than just execute local commands. See the complete list of [Command Types](#command-types) to learn more.
 
 ## Specification Format
 

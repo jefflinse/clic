@@ -1,5 +1,5 @@
 name: allcommands
-description: an exampe of each Handyman command type
+description: an example of each Handyman command type
 verison: 1.0.0
 commands:
   - name: ls
