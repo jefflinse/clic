@@ -1,6 +1,6 @@
 name: allcommands
 description: an example of each Handyman command type
-verison: 1.0.0
+version: 1.0.0
 commands:
   - name: ls
     description: calls 'ls -la'
