@@ -4,8 +4,8 @@ commands:
   - name: say
     description: prints a message
     exec:
-      name: "echo"
-      args: ["{{params.message}} ({{params.additional_message}})", "$FOO"]
+      name: echo
+      args: ["{{params.message}} {{params.additional_message}}"]
       params:
         - name: message
           type: string
@@ -13,6 +13,4 @@ commands:
         - name: additional_message
           type: string
           required: false
-      env:
-        FOO: "value of FOO"
-      inherit_env: true
+          default: world

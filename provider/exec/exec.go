@@ -2,8 +2,10 @@ package exec
 
 import (
 	"fmt"
+	"log"
 	"os"
 	osexec "os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/jefflinse/handyman/ioutil"
@@ -26,33 +28,60 @@ func New(v interface{}) (provider.Provider, error) {
 
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
-	paramTypes := map[string]string{}
-	for _, param := range s.Parameters {
-		paramTypes[param.Name] = param.Type
+	// map name -> param
+	params := map[string]*Parameter{}
+	for i := range s.Parameters {
+		params[s.Parameters[i].Name] = &s.Parameters[i]
+	}
+
+	for name, param := range params {
+		// assign default values
+		if !param.Required {
+			switch param.Type {
+			case BoolParamType:
+				param.value = false
+				param.value, _ = strconv.ParseBool(param.Default)
+				log.Printf("assigning default %s = '%v'", name, param.value)
+			case IntParamType:
+				param.value = 0
+				param.value, _ = strconv.Atoi(param.Default)
+				log.Printf("assigning default %s = '%v'", name, param.value)
+			case NumberParamType:
+				param.value = 0.0
+				param.value, _ = strconv.ParseFloat(param.Default, 64)
+				log.Printf("assigning default %s = '%v'", name, param.value)
+			case StringParamType:
+				param.value = param.Default
+				log.Printf("assigning default %s = '%v'", name, param.value)
+			}
+		}
 	}
 
 	return func(ctx *cli.Context) error {
+		// override defaults with values from set flags
 		for _, flagName := range ctx.LocalFlagNames() {
-			paramName := toUnderscores(flagName)
-			var paramValue interface{}
-			switch paramTypes[paramName] {
+			param := params[toUnderscores(flagName)]
+
+			switch param.Type {
 			case BoolParamType:
-				paramValue = ctx.Bool(flagName)
+				param.value = ctx.Bool(flagName)
 			case IntParamType:
-				paramValue = ctx.Int(flagName)
+				param.value = ctx.Int(flagName)
 			case NumberParamType:
-				paramValue = ctx.Float64(flagName)
+				param.value = ctx.Float64(flagName)
 			case StringParamType:
-				paramValue = ctx.String(flagName)
+				param.value = ctx.String(flagName)
+				log.Printf("using %s = '%v'", param.Name, param.value)
 			}
+		}
 
-			// inject flag values into the command
-			placeholderStr := fmt.Sprintf("{{params.%s}}", paramName)
-			s.Name = strings.ReplaceAll(s.Name, placeholderStr, paramValue.(string))
-
-			// inject flag values into the args
+		// inject param values
+		for _, param := range params {
+			placeholderStr := fmt.Sprintf("{{params.%s}}", param.Name)
+			value := fmt.Sprintf("%v", param.value)
+			s.Name = strings.ReplaceAll(s.Name, placeholderStr, value)
 			for i, arg := range s.Args {
-				s.Args[i] = strings.ReplaceAll(arg, placeholderStr, paramValue.(string))
+				s.Args[i] = strings.ReplaceAll(arg, placeholderStr, value)
 			}
 		}
 
