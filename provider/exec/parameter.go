@@ -8,11 +8,11 @@ import (
 
 // A Parameter specifies a command parameter.
 type Parameter struct {
-	Name        string `json:"name"                  yaml:"name"`
-	Default     string `json:"default,omitempty"     yaml:"default,omitempty"`
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-	Type        string `json:"type"                  yaml:"type"`
-	Required    bool   `json:"required"              yaml:"required"`
+	Name        string      `json:"name"                  yaml:"name"`
+	Default     interface{} `json:"default,omitempty"     yaml:"default,omitempty"`
+	Description string      `json:"description,omitempty" yaml:"description,omitempty"`
+	Type        string      `json:"type"                  yaml:"type"`
+	Required    bool        `json:"required"              yaml:"required"`
 
 	value interface{}
 }

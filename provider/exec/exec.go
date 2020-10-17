@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	osexec "os/exec"
-	"strconv"
 	"strings"
 
 	"github.com/jefflinse/handyman/ioutil"
@@ -39,19 +38,16 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 		if !param.Required {
 			switch param.Type {
 			case BoolParamType:
-				param.value = false
-				param.value, _ = strconv.ParseBool(param.Default)
+				param.value = param.Default.(bool)
 				log.Printf("assigning default %s = '%v'", name, param.value)
 			case IntParamType:
-				param.value = 0
-				param.value, _ = strconv.Atoi(param.Default)
+				param.value = int(param.Default.(float64))
 				log.Printf("assigning default %s = '%v'", name, param.value)
 			case NumberParamType:
-				param.value = 0.0
-				param.value, _ = strconv.ParseFloat(param.Default, 64)
+				param.value = param.Default.(float64)
 				log.Printf("assigning default %s = '%v'", name, param.value)
 			case StringParamType:
-				param.value = param.Default
+				param.value = param.Default.(string)
 				log.Printf("assigning default %s = '%v'", name, param.value)
 			}
 		}
@@ -71,7 +67,6 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 				param.value = ctx.Float64(flagName)
 			case StringParamType:
 				param.value = ctx.String(flagName)
-				log.Printf("using %s = '%v'", param.Name, param.value)
 			}
 		}
 
