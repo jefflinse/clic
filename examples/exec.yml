@@ -1,0 +1,18 @@
+name: my-exec-app
+description: an example of a Handyman app with exec commands
+commands:
+  - name: say
+    description: prints a message
+    exec:
+      name: "echo"
+      args: ["{{params.message}} ({{params.additional_message}})", "$FOO"]
+      params:
+        - name: message
+          type: string
+          required: true
+        - name: additional_message
+          type: string
+          required: false
+      env:
+        FOO: "value of FOO"
+      inherit_env: true
