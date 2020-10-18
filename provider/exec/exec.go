@@ -2,7 +2,6 @@ package exec
 
 import (
 	"fmt"
-	"log"
 	"os"
 	osexec "os/exec"
 	"strings"
@@ -33,22 +32,18 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 		params[s.Parameters[i].Name] = &s.Parameters[i]
 	}
 
-	for name, param := range params {
+	for _, param := range params {
 		// assign default values
 		if !param.Required {
 			switch param.Type {
 			case BoolParamType:
 				param.value = param.Default.(bool)
-				log.Printf("assigning default %s = '%v'", name, param.value)
 			case IntParamType:
 				param.value = int(param.Default.(float64))
-				log.Printf("assigning default %s = '%v'", name, param.value)
 			case NumberParamType:
 				param.value = param.Default.(float64)
-				log.Printf("assigning default %s = '%v'", name, param.value)
 			case StringParamType:
 				param.value = param.Default.(string)
-				log.Printf("assigning default %s = '%v'", name, param.value)
 			}
 		}
 	}

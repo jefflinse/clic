@@ -11,6 +11,6 @@ commands:
           type: string
           required: true
         - name: additional_message
-          type: bool
+          type: int
           required: false
           default: 20
