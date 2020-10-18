@@ -9,7 +9,9 @@ commands:
       params:
         - name: message
           type: string
+          description: the primary message
           required: true
         - name: additional_message
           type: string
+          description: an additional message
           required: false
