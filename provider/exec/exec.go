@@ -11,11 +11,15 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+const (
+	parameterTemplate = "{{params.%s}}"
+)
+
 // Spec describes the provider.
 type Spec struct {
-	Name       string      `json:"name"             yaml:"name"`
-	Args       []string    `json:"args,omitempty"   yaml:"args,omitempty"`
-	Parameters []Parameter `json:"params,omitempty" yaml:"params,omitempty"`
+	Name       string       `json:"name"             yaml:"name"`
+	Args       []string     `json:"args,omitempty"   yaml:"args,omitempty"`
+	Parameters []*Parameter `json:"params,omitempty" yaml:"params,omitempty"`
 }
 
 // New creates a new provider.
@@ -26,68 +30,13 @@ func New(v interface{}) (provider.Provider, error) {
 
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
-	// map name -> param
-	params := map[string]*Parameter{}
-	for i := range s.Parameters {
-		params[s.Parameters[i].Name] = &s.Parameters[i]
-	}
-
-	for _, param := range params {
-		// assign default values
-		if !param.Required {
-			switch param.Type {
-			case BoolParamType:
-				if param.Default == nil {
-					param.Default = false
-				}
-				param.value = param.Default.(bool)
-			case IntParamType:
-				if param.Default == nil {
-					param.Default = 0.0
-				}
-				param.value = int(param.Default.(float64))
-			case NumberParamType:
-				if param.Default == nil {
-					param.Default = 0.0
-				}
-				param.value = param.Default.(float64)
-			case StringParamType:
-				if param.Default == nil {
-					param.Default = ""
-				}
-				param.value = param.Default.(string)
-			}
-		}
-	}
+	s.assignDefaultParameterValues()
 
 	return func(ctx *cli.Context) error {
-		// override defaults with values from set flags
-		for _, flagName := range ctx.LocalFlagNames() {
-			param := params[toUnderscores(flagName)]
+		s.assignFlagParameterValues(ctx)
 
-			switch param.Type {
-			case BoolParamType:
-				param.value = ctx.Bool(flagName)
-			case IntParamType:
-				param.value = ctx.Int(flagName)
-			case NumberParamType:
-				param.value = ctx.Float64(flagName)
-			case StringParamType:
-				param.value = ctx.String(flagName)
-			}
-		}
-
-		// inject param values
-		for _, param := range params {
-			placeholderStr := fmt.Sprintf("{{params.%s}}", param.Name)
-			value := fmt.Sprintf("%v", param.value)
-			s.Name = strings.ReplaceAll(s.Name, placeholderStr, value)
-			for i, arg := range s.Args {
-				s.Args[i] = strings.ReplaceAll(arg, placeholderStr, value)
-			}
-		}
-
-		command := osexec.Command(s.Name, s.Args...)
+		name, args := s.parameterizedNameAndArgs()
+		command := osexec.Command(name, args...)
 		command.Env = os.Environ()
 		command.Stdin = os.Stdin
 		command.Stdout = os.Stdout
@@ -153,6 +102,79 @@ func (s Spec) Validate() error {
 	}
 
 	return nil
+}
+
+// Copy parameter values from parameter defaults.
+func (s *Spec) assignDefaultParameterValues() {
+	for _, param := range s.Parameters {
+		if param.Required {
+			// required parameters don't use default values
+			continue
+		}
+
+		// assign default values to optional parameters
+		switch param.Type {
+		case BoolParamType:
+			if param.Default == nil {
+				param.Default = false
+			}
+			param.value = param.Default.(bool)
+		case IntParamType:
+			if param.Default == nil {
+				param.Default = 0.0
+			}
+			param.value = int(param.Default.(float64))
+		case NumberParamType:
+			if param.Default == nil {
+				param.Default = 0.0
+			}
+			param.value = param.Default.(float64)
+		case StringParamType:
+			if param.Default == nil {
+				param.Default = ""
+			}
+			param.value = param.Default.(string)
+		}
+	}
+}
+
+// Copy parameter values from flags that have been specified.
+func (s *Spec) assignFlagParameterValues(ctx *cli.Context) {
+	params := map[string]*Parameter{}
+	for i := range s.Parameters {
+		params[s.Parameters[i].Name] = s.Parameters[i]
+	}
+
+	for _, flagName := range ctx.LocalFlagNames() {
+		param := params[toUnderscores(flagName)]
+
+		switch param.Type {
+		case BoolParamType:
+			param.value = ctx.Bool(flagName)
+		case IntParamType:
+			param.value = ctx.Int(flagName)
+		case NumberParamType:
+			param.value = ctx.Float64(flagName)
+		case StringParamType:
+			param.value = ctx.String(flagName)
+		}
+	}
+}
+
+func (s *Spec) parameterizedNameAndArgs() (string, []string) {
+	name := s.Name
+	args := make([]string, len(s.Args))
+	copy(args, s.Args)
+	for _, param := range s.Parameters {
+		placeholderStr := fmt.Sprintf(parameterTemplate, param.Name)
+		value := fmt.Sprintf("%v", param.value)
+		name = strings.ReplaceAll(s.Name, placeholderStr, value)
+		for i, arg := range args {
+			args[i] = strings.ReplaceAll(arg, placeholderStr, value)
+		}
+	}
+
+	return name, args
 }
 
 // Underscores to dashes.
