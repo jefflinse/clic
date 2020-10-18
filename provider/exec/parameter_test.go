@@ -3,7 +3,7 @@ package exec_test
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman/provider/lambda"
+	"github.com/jefflinse/handyman/provider/exec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +52,7 @@ func TestNewParameterSpec(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s, err := lambda.NewParameter([]byte(test.content))
+			s, err := exec.NewParameter([]byte(test.content))
 			if test.valid {
 				assert.NoError(t, err)
 				assert.NotNil(t, s)
@@ -67,63 +67,68 @@ func TestNewParameterSpec(t *testing.T) {
 func TestParameter_Validate(t *testing.T) {
 	tests := []struct {
 		name  string
-		param lambda.Parameter
+		param exec.Parameter
 		valid bool
 	}{
 		{
 			name: "valid bool",
-			param: lambda.Parameter{
+			param: exec.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        lambda.BoolParamType,
+				Type:        exec.BoolParamType,
 			},
 			valid: true,
 		},
 		{
 			name: "valid int",
-			param: lambda.Parameter{
+			param: exec.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        lambda.IntParamType,
+				Type:        exec.IntParamType,
 			},
 			valid: true,
 		},
 		{
 			name: "valid number",
-			param: lambda.Parameter{
+			param: exec.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        lambda.NumberParamType,
+				Type:        exec.NumberParamType,
 			},
 			valid: true,
 		},
 		{
 			name: "valid string",
-			param: lambda.Parameter{
+			param: exec.Parameter{
 				Name:        "param",
 				Description: "the param",
-				Type:        lambda.StringParamType,
+				Type:        exec.StringParamType,
 			},
 			valid: true,
 		},
 		{
 			name:  "invalid, missing name",
-			param: lambda.Parameter{Description: "the param", Type: lambda.StringParamType},
+			param: exec.Parameter{Description: "the param", Type: exec.StringParamType},
 			valid: false,
 		},
 		{
-			name:  "invalid, missing description",
-			param: lambda.Parameter{Name: "param", Type: lambda.StringParamType},
-			valid: false,
+			name:  "valid, missing description",
+			param: exec.Parameter{Name: "param", Type: exec.StringParamType},
+			valid: true,
 		},
 		{
 			name:  "invalid, missing type",
-			param: lambda.Parameter{Name: "param", Description: "the param"},
+			param: exec.Parameter{Name: "param", Description: "the param"},
+			valid: false,
+		},
+		{
+			name:  "invalid, required but default specified",
+			param: exec.Parameter{Name: "param", Description: "the param", Type: "string", Required: true, Default: "value"},
 			valid: false,
 		},
 		{
 			name: "invalid parameter type",
-			param: lambda.Parameter{
+			param: exec.Parameter{
 				Name:        "param",
 				Description: "the param",
 				Type:        "invalid",
@@ -145,6 +150,6 @@ func TestParameter_Validate(t *testing.T) {
 }
 
 func TestNewInvalidParameterSpecError(t *testing.T) {
-	err := lambda.NewInvalidParameterSpecError("the reason")
+	err := exec.NewInvalidParameterSpecError("the reason")
 	assert.EqualError(t, err, "invalid parameter spec: the reason")
 }

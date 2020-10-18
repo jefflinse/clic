@@ -44,9 +44,11 @@ func NewParameter(content []byte) (*Parameter, error) {
 // Validate validates a Parameter.
 func (param Parameter) Validate() error {
 	if param.Name == "" {
-		return NewInvalidParameterSpecError("missing name")
+		return NewInvalidParameterSpecError("param missing name")
 	} else if param.Type == "" {
-		return NewInvalidParameterSpecError("missing type")
+		return NewInvalidParameterSpecError(fmt.Sprintf("param '%s' missing type", param.Name))
+	} else if param.Required && param.Default != nil {
+		return NewInvalidParameterSpecError(fmt.Sprintf("required param '%s' cannot have default value", param.Name))
 	} else {
 		switch param.Type {
 		case BoolParamType:
@@ -54,7 +56,7 @@ func (param Parameter) Validate() error {
 		case NumberParamType:
 		case StringParamType:
 		default:
-			return NewInvalidParameterSpecError(fmt.Sprintf("unknown type: %s", param.Type))
+			return NewInvalidParameterSpecError(fmt.Sprintf("unknown type '%s' for param '%s'", param.Type, param.Name))
 		}
 	}
 
