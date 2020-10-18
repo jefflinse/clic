@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,8 +15,8 @@ import (
 
 // Spec describes the provider.
 type Spec struct {
-	ARN           string               `json:"arn"                      yaml:"arn"`
-	RequestParams []provider.Parameter `json:"request_params,omitempty" yaml:"request_params,omitempty"`
+	ARN           string                `json:"arn"                      yaml:"arn"`
+	RequestParams provider.ParameterSet `json:"request_params,omitempty" yaml:"request_params,omitempty"`
 }
 
 // New creates a new provider.
@@ -28,26 +27,8 @@ func New(v interface{}) (provider.Provider, error) {
 
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
-	paramTypes := map[string]string{}
-	for _, param := range s.RequestParams {
-		paramTypes[param.Name] = param.Type
-	}
-
 	return func(ctx *cli.Context) error {
-		request := map[string]interface{}{}
-		for _, flagName := range ctx.LocalFlagNames() {
-			reqParamName := toUnderscores(flagName)
-			switch paramTypes[reqParamName] {
-			case "bool":
-				request[reqParamName] = ctx.Bool(flagName)
-			case "int":
-				request[reqParamName] = ctx.Int(flagName)
-			case "number":
-				request[reqParamName] = ctx.Float64(flagName)
-			case "string":
-				request[reqParamName] = ctx.String(flagName)
-			}
-		}
+		request := s.parameterizedRequest(ctx)
 
 		response, functionError, err := executeLambda(s.ARN, request)
 		if err != nil {
@@ -71,25 +52,25 @@ func (s Spec) CLIFlags() []cli.Flag {
 		switch param.Type {
 		case "bool":
 			flag = &cli.BoolFlag{
-				Name:     toDashes(param.Name),
+				Name:     param.CLIFlagName(),
 				Usage:    param.Description,
 				Required: param.Required,
 			}
 		case "int":
 			flag = &cli.IntFlag{
-				Name:     toDashes(param.Name),
+				Name:     param.CLIFlagName(),
 				Usage:    param.Description,
 				Required: param.Required,
 			}
 		case "number":
 			flag = &cli.Float64Flag{
-				Name:     toDashes(param.Name),
+				Name:     param.CLIFlagName(),
 				Usage:    param.Description,
 				Required: param.Required,
 			}
 		case "string":
 			flag = &cli.StringFlag{
-				Name:     toDashes(param.Name),
+				Name:     param.CLIFlagName(),
 				Usage:    param.Description,
 				Required: param.Required,
 			}
@@ -115,6 +96,16 @@ func (s Spec) Validate() error {
 	return nil
 }
 
+func (s *Spec) parameterizedRequest(ctx *cli.Context) map[string]interface{} {
+	request := map[string]interface{}{}
+	s.RequestParams.ResolveValues(ctx)
+	for _, param := range s.RequestParams {
+		request[param.Name] = param.Value()
+	}
+
+	return request
+}
+
 // Executes the AWS Lambda function specified by an ARN, passing the specified payload, if any.
 func executeLambda(arn string, request interface{}) ([]byte, *string, error) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -134,14 +125,4 @@ func executeLambda(arn string, request interface{}) ([]byte, *string, error) {
 	}
 
 	return result.Payload, result.FunctionError, nil
-}
-
-// Underscores to dashes.
-func toDashes(str string) string {
-	return strings.ReplaceAll(str, "_", "-")
-}
-
-// Dashes to underscores.
-func toUnderscores(str string) string {
-	return strings.ReplaceAll(str, "-", "_")
 }

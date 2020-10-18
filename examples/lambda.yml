@@ -1,0 +1,17 @@
+name: my-lambda-app
+description: an example of a Handyman app with lambda commands
+commands:
+  - name: my-func
+    description: invokes 'my-func'
+    lambda:
+      arn: "aws:arn:lambda:us-west-2:1234567890:function/my-func"
+      request_params:
+        - name: message
+          type: string
+          description: the primary message
+          required: true
+        - name: dummy_flag
+          type: bool
+          description: a boolean flag of some sort
+          required: false
+          default: true
