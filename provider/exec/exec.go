@@ -37,12 +37,24 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 		if !param.Required {
 			switch param.Type {
 			case BoolParamType:
+				if param.Default == nil {
+					param.Default = false
+				}
 				param.value = param.Default.(bool)
 			case IntParamType:
+				if param.Default == nil {
+					param.Default = 0.0
+				}
 				param.value = int(param.Default.(float64))
 			case NumberParamType:
+				if param.Default == nil {
+					param.Default = 0.0
+				}
 				param.value = param.Default.(float64)
 			case StringParamType:
+				if param.Default == nil {
+					param.Default = ""
+				}
 				param.value = param.Default.(string)
 			}
 		}
