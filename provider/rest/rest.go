@@ -20,6 +20,7 @@ type Spec struct {
 	Headers     map[string]string     `json:"headers,omitempty"      yaml:"headers,omitempty"`
 	QueryParams provider.ParameterSet `json:"query_params,omitempty" yaml:"query_params,omitempty"`
 	BodyParams  provider.ParameterSet `json:"body_params,omitempty"  yaml:"body_params,omitempty"`
+	PrintStatus bool                  `json:"print_status,omitempty" yaml:"print_status"`
 }
 
 // New creates a new provider.
@@ -41,7 +42,10 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 			return err
 		}
 
-		fmt.Println(code)
+		if s.PrintStatus {
+			fmt.Println(code)
+		}
+
 		fmt.Println(string(body))
 		return nil
 	}

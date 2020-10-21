@@ -27,6 +27,7 @@ commands:
         - name: bar
           type: int
           description: a number of some sort
+      print_status: true
   - name: put
     description: send a PUT request to a test endpoint
     rest:
