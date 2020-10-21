@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	goioutil "io/ioutil"
 	"net/http"
@@ -13,11 +15,11 @@ import (
 
 // Spec describes the provider.
 type Spec struct {
-	Endpoint   string                `json:"endpoint"              yaml:"endpoint"`
-	Method     string                `json:"method"                yaml:"method"`
-	Headers    map[string]string     `json:"headers,omitempty"     yaml:"headers,omitempty"`
-	URLParams  provider.ParameterSet `json:"url_params,omitempty"  yaml:"url_params,omitempty"`
-	BodyParams provider.ParameterSet `json:"body_params,omitempty" yaml:"body_params,omitempty"`
+	Endpoint    string                `json:"endpoint"               yaml:"endpoint"`
+	Method      string                `json:"method"                 yaml:"method"`
+	Headers     map[string]string     `json:"headers,omitempty"      yaml:"headers,omitempty"`
+	QueryParams provider.ParameterSet `json:"query_params,omitempty" yaml:"query_params,omitempty"`
+	BodyParams  provider.ParameterSet `json:"body_params,omitempty"  yaml:"body_params,omitempty"`
 }
 
 // New creates a new provider.
@@ -107,7 +109,7 @@ func (s Spec) Validate() error {
 }
 
 func (s *Spec) allParams() provider.ParameterSet {
-	return append(append(provider.ParameterSet{}, s.BodyParams...), s.URLParams...)
+	return append(append(provider.ParameterSet{}, s.QueryParams...), s.BodyParams...)
 }
 
 func (s *Spec) parameterizedRequest(ctx *cli.Context) (*http.Request, error) {
@@ -121,25 +123,35 @@ func (s *Spec) parameterizedRequest(ctx *cli.Context) (*http.Request, error) {
 		URL:    url,
 	}
 
+	req.Header = http.Header{"Content-Type": {"application/json"}}
 	for name, value := range s.Headers {
 		req.Header.Set(name, value)
 	}
 
-	s.BodyParams.ResolveValues(ctx)
-	body := map[string]interface{}{}
-	for _, param := range s.BodyParams {
-		body[param.Name] = param.Value()
-	}
-
-	if len(s.URLParams) > 0 {
+	if len(s.QueryParams) > 0 {
 		query := req.URL.Query()
-		s.URLParams.ResolveValues(ctx)
-		for _, param := range s.URLParams {
-			query.Add(param.Name, fmt.Sprintf("%s", param.Value()))
+		s.QueryParams.ResolveValues(ctx)
+		for _, param := range s.QueryParams {
+			query.Add(param.Name, fmt.Sprintf("%v", param.Value()))
 		}
 
 		req.URL.RawQuery = query.Encode()
 	}
+
+	body := map[string]interface{}{}
+	if len(s.BodyParams) > 0 {
+		s.BodyParams.ResolveValues(ctx)
+		for _, param := range s.BodyParams {
+			body[param.Name] = param.Value()
+		}
+	}
+
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Body = goioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	return req, nil
 }

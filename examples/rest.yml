@@ -1,13 +1,42 @@
 name: my-rest-app
 description: an example of a Handyman app with rest commands
 commands:
-  - name: google
-    description: search google for a string
+  - name: get
+    description: send a GET request to a test endpoint
     rest:
-      endpoint: http://google.com
+      endpoint: https://postman-echo.com/get
       method: GET
-      url_params:
-        - name: q
+      query_params:
+        - name: foo
           type: string
-          description: the query string
+          description: it's foo
           required: true
+        - name: bar
+          type: int
+          description: a number of some sort
+  - name: post
+    description: send a POST request to a test endpoint
+    rest:
+      endpoint: https://postman-echo.com/post
+      method: POST
+      body_params:
+        - name: foo
+          type: string
+          description: it's foo
+          required: true
+        - name: bar
+          type: int
+          description: a number of some sort
+  - name: put
+    description: send a PUT request to a test endpoint
+    rest:
+      endpoint: https://postman-echo.com/put
+      method: PUT
+      body_params:
+        - name: foo
+          type: string
+          description: it's foo
+          required: true
+        - name: bar
+          type: int
+          description: a number of some sort
