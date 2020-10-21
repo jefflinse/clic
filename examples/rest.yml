@@ -1,5 +1,5 @@
 name: my-rest-app
-description: an example of a Handyman app with rest commands
+description: an example of a Handyman app with REST commands
 commands:
   - name: get
     description: send a GET request to a test endpoint
@@ -33,6 +33,15 @@ commands:
     rest:
       endpoint: https://postman-echo.com/put
       method: PUT
+      query_params:
+        - name: begin
+          type: string
+          description: when to start
+          default: now
+        - name: end
+          type: string
+          description: when to stop
+          default: whenever
       body_params:
         - name: foo
           type: string

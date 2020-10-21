@@ -53,41 +53,7 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 
 // CLIFlags creates a set of CLI flags.
 func (s Spec) CLIFlags() []cli.Flag {
-	flags := []cli.Flag{}
-	allParams := s.allParams()
-	for _, param := range allParams {
-		var flag cli.Flag
-		switch param.Type {
-		case "bool":
-			flag = &cli.BoolFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case "int":
-			flag = &cli.IntFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case "number":
-			flag = &cli.Float64Flag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case "string":
-			flag = &cli.StringFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		}
-
-		flags = append(flags, flag)
-	}
-
-	return flags
+	return s.allParams().CreateCLIFlags()
 }
 
 // Type returns the type.
@@ -101,12 +67,8 @@ func (s Spec) Validate() error {
 		return fmt.Errorf("invalid %s command spec: missing method", s.Type())
 	} else if s.Endpoint == "" {
 		return fmt.Errorf("invalid %s command spec: missing endpoint", s.Type())
-	}
-
-	for _, param := range s.allParams() {
-		if err := param.Validate(); err != nil {
-			return err
-		}
+	} else if err := s.allParams().Validate(); err != nil {
+		return err
 	}
 
 	return nil

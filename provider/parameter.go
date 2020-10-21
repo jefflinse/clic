@@ -52,6 +52,39 @@ func (param *Parameter) CLIFlagName() string {
 	return toDashes(param.Name)
 }
 
+// CreateCLIFlag creates a CLI flag for this parameter.
+func (param *Parameter) CreateCLIFlag() cli.Flag {
+	var flag cli.Flag
+	switch param.Type {
+	case "bool":
+		flag = &cli.BoolFlag{
+			Name:     param.CLIFlagName(),
+			Usage:    param.Description,
+			Required: param.Required,
+		}
+	case "int":
+		flag = &cli.IntFlag{
+			Name:     param.CLIFlagName(),
+			Usage:    param.Description,
+			Required: param.Required,
+		}
+	case "number":
+		flag = &cli.Float64Flag{
+			Name:     param.CLIFlagName(),
+			Usage:    param.Description,
+			Required: param.Required,
+		}
+	case "string":
+		flag = &cli.StringFlag{
+			Name:     param.CLIFlagName(),
+			Usage:    param.Description,
+			Required: param.Required,
+		}
+	}
+
+	return flag
+}
+
 // SetDefaultValue assigns the default value to the parameter.
 func (param *Parameter) SetDefaultValue() {
 	if param.Required {
@@ -147,6 +180,16 @@ func NewInvalidParameterSpecError(reason string) error {
 // A ParameterSet is a slice of parameter pointers.
 type ParameterSet []*Parameter
 
+// CreateCLIFlags creates a set of CLI flags for this parameter set.
+func (ps ParameterSet) CreateCLIFlags() []cli.Flag {
+	flags := []cli.Flag{}
+	for _, param := range ps {
+		flags = append(flags, param.CreateCLIFlag())
+	}
+
+	return flags
+}
+
 // InjectValues replaces all param references with their corresponding values in the given string.
 func (ps ParameterSet) InjectValues(str string) string {
 	result := str
@@ -184,6 +227,17 @@ func (ps ParameterSet) ResolveValues(ctx *cli.Context) {
 			}
 		}
 	}
+}
+
+// Validate validates the parameter set, returning the first error it encounters, if any.
+func (ps ParameterSet) Validate() error {
+	for _, param := range ps {
+		if err := param.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Underscores to dashes.

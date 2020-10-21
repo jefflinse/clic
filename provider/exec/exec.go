@@ -45,40 +45,7 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 
 // CLIFlags creates a set of CLI flags.
 func (s Spec) CLIFlags() []cli.Flag {
-	flags := []cli.Flag{}
-	for _, param := range s.Parameters {
-		var flag cli.Flag
-		switch param.Type {
-		case provider.BoolParamType:
-			flag = &cli.BoolFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case provider.IntParamType:
-			flag = &cli.IntFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case provider.NumberParamType:
-			flag = &cli.Float64Flag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case provider.StringParamType:
-			flag = &cli.StringFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		}
-
-		flags = append(flags, flag)
-	}
-
-	return flags
+	return s.Parameters.CreateCLIFlags()
 }
 
 // Type returns the type.
@@ -90,12 +57,8 @@ func (s Spec) Type() string {
 func (s Spec) Validate() error {
 	if s.Name == "" {
 		return fmt.Errorf("invalid %s command spec: missing name", s.Type())
-	}
-
-	for _, param := range s.Parameters {
-		if err := param.Validate(); err != nil {
-			return err
-		}
+	} else if err := s.Parameters.Validate(); err != nil {
+		return err
 	}
 
 	return nil

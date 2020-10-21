@@ -46,40 +46,7 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 
 // CLIFlags creates a set of CLI flags.
 func (s Spec) CLIFlags() []cli.Flag {
-	flags := []cli.Flag{}
-	for _, param := range s.RequestParams {
-		var flag cli.Flag
-		switch param.Type {
-		case "bool":
-			flag = &cli.BoolFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case "int":
-			flag = &cli.IntFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case "number":
-			flag = &cli.Float64Flag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		case "string":
-			flag = &cli.StringFlag{
-				Name:     param.CLIFlagName(),
-				Usage:    param.Description,
-				Required: param.Required,
-			}
-		}
-
-		flags = append(flags, flag)
-	}
-
-	return flags
+	return s.RequestParams.CreateCLIFlags()
 }
 
 // Type returns the type.
@@ -91,6 +58,8 @@ func (s Spec) Type() string {
 func (s Spec) Validate() error {
 	if s.ARN == "" {
 		return fmt.Errorf("invalid %s command spec: missing ARN", s.Type())
+	} else if err := s.RequestParams.Validate(); err != nil {
+		return err
 	}
 
 	return nil
