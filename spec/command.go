@@ -9,6 +9,7 @@ import (
 	"github.com/jefflinse/handyman/provider/exec"
 	"github.com/jefflinse/handyman/provider/lambda"
 	"github.com/jefflinse/handyman/provider/noop"
+	"github.com/jefflinse/handyman/provider/rest"
 	"github.com/urfave/cli/v2"
 )
 
@@ -28,6 +29,7 @@ var commandMap = map[string]func(interface{}) (provider.Provider, error){
 	"exec":   exec.New,
 	"lambda": lambda.New,
 	"noop":   noop.New,
+	"rest":   rest.New,
 }
 
 // NewCommandSpec creates a new Command from the provided spec.

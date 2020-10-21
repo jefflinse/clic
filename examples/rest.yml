@@ -1,0 +1,13 @@
+name: my-rest-app
+description: an example of a Handyman app with rest commands
+commands:
+  - name: google
+    description: search google for a string
+    rest:
+      endpoint: http://google.com
+      method: GET
+      url_params:
+        - name: q
+          type: string
+          description: the query string
+          required: true
