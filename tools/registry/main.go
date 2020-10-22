@@ -24,6 +24,8 @@ func main() {
 		command := strings.ToLower(args[0])
 		if command == "list" {
 			listEntries(reg)
+		} else if command == "prune" {
+			fatalOn(pruneEntries(reg), "failed to prune registry")
 		} else {
 			if len(args) == 1 {
 				fatalOn(fmt.Errorf("too few arguments"), "error")
@@ -66,6 +68,16 @@ func listEntries(reg registry.Registry) {
 	}
 
 	fmt.Println()
+}
+
+func pruneEntries(reg registry.Registry) error {
+	numPruned, err := reg.Prune()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("removed %d stale app registration(s)\n", numPruned)
+	return nil
 }
 
 func fatalOn(err error, reason string) {

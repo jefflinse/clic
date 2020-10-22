@@ -69,6 +69,24 @@ func (r Registry) Add(name string, path string) error {
 	return r.Save()
 }
 
+// Prune removes any registered apps whose paths no longer exist.
+func (r Registry) Prune() (int, error) {
+	numRemoved := 0
+	for name, path := range r {
+		if fileExists(path) {
+			continue
+		}
+
+		if err := r.Remove(name); err != nil {
+			return 0, err
+		}
+
+		numRemoved++
+	}
+
+	return numRemoved, r.Save()
+}
+
 // Remove unregisters an app.
 func (r Registry) Remove(name string) error {
 	if _, ok := r[name]; !ok {
@@ -102,6 +120,15 @@ func ensureRegistryFileExists(name string) error {
 	}
 
 	return file.Close()
+}
+
+func fileExists(name string) bool {
+	info, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	return !info.IsDir()
 }
 
 func registryFilePath() (string, error) {
