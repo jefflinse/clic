@@ -19,5 +19,8 @@ func main() {
 		args = append(args, os.Args[1:]...)
 	}
 
-	app.Run(args)
+	if err := app.Run(args); err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err.Error())
+		os.Exit(1)
+	}
 }
