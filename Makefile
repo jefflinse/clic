@@ -3,14 +3,16 @@ all: build
 source_files = *.go */*.go */*/*.go
 coverage_profile = coverage.out
 coverage_report = coverage.report.out
-build_bin = tools/compiler/compiler
-run_bin = tools/runner/runner
-validate_bin = tools/validator/validator
+build_bin = tools/build/build
+registry_bin = tools/registry/registry
+run_bin = tools/run/run
+validate_bin = tools/validate/validate
 
 clean:
-	cd tools/validate && go clean -i -testcache ./...
-	cd tools/run && go clean -i -testcache ./...
 	cd tools/build && go clean -i -testcache ./...
+	cd tools/registry && go clean -i -testcache ./...
+	cd tools/run && go clean -i -testcache ./...
+	cd tools/validate && go clean -i -testcache ./...
 	rm -f $(coverage_profile) $(coverage_report)
 
 build: $(validate_bin) $(run_bin) $(build_bin)
@@ -31,6 +33,9 @@ $(run_bin): $(source_files)
 
 $(validate_bin): $(source_files)
 	cd tools/validate && go build
+
+$(registry_bin): $(source_files)
+	cd tools/registry && go build
 
 $(coverage_report): $(coverage_profile)
 	go tool cover -func=$(coverage_profile) > $(coverage_report)
