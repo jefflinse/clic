@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/jefflinse/handyman"
+	"github.com/jefflinse/handyman/registry"
 )
 
 func main() {
@@ -15,7 +16,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	content, err := ioutil.ReadFile(os.Args[1])
+	specFile := os.Args[1]
+	var content []byte
+	if !fileExists(specFile) {
+		// spec file not found, check the registry
+		appName := os.Args[1]
+		reg, err := registry.Load()
+		fatalOn(err, "failed to load registry")
+
+		if path, ok := reg[appName]; ok {
+			specFile = path
+		} else {
+			fatalOn(fmt.Errorf("'%s' is not a valid spec file path or registered app name", appName), "error")
+		}
+	}
+
+	content, err := ioutil.ReadFile(specFile)
 	fatalOn(err, "failed to read spec file")
 
 	app, err := handyman.NewApp(content)
@@ -39,4 +55,13 @@ func fatalOn(err error, reason string) {
 		fmt.Fprintf(os.Stderr, "%s: %s", reason, err.Error())
 		os.Exit(1)
 	}
+}
+
+func fileExists(name string) bool {
+	info, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	return !info.IsDir()
 }
