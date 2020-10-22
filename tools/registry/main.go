@@ -64,7 +64,7 @@ func listEntries(reg registry.Registry) {
 
 	for name, path := range reg {
 		paddingLen := longestNameLen - len(name)
-		fmt.Printf("%s%s: %s\n", strings.Repeat(" ", paddingLen), name, path)
+		fmt.Printf("%s: %s%s\n", name, strings.Repeat(" ", paddingLen), path)
 	}
 
 	fmt.Println()
