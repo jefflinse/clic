@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -25,10 +26,26 @@ func New(v interface{}) (provider.Provider, error) {
 	return &s, ioutil.Intermarshal(v, &s)
 }
 
+// ArgsUsage returns usage text for the arguments.
+func (s Spec) ArgsUsage() string {
+	argNames := []string{}
+	for _, param := range s.RequestParams {
+		if param.Required {
+			argNames = append(argNames, param.CLIFlagName())
+		}
+	}
+
+	return strings.Join(argNames, " ")
+}
+
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		request := s.parameterizedRequest(ctx)
+		request, err := s.parameterizedRequest(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n\n", err)
+			cli.ShowCommandHelpAndExit(ctx, ctx.Command.Name, 1)
+		}
 
 		response, functionError, err := executeLambda(s.ARN, request)
 		if err != nil {
@@ -65,14 +82,17 @@ func (s Spec) Validate() error {
 	return nil
 }
 
-func (s *Spec) parameterizedRequest(ctx *cli.Context) map[string]interface{} {
+func (s *Spec) parameterizedRequest(ctx *cli.Context) (map[string]interface{}, error) {
+	if err := s.RequestParams.ResolveValues(ctx); err != nil {
+		return nil, err
+	}
+
 	request := map[string]interface{}{}
-	s.RequestParams.ResolveValues(ctx)
 	for _, param := range s.RequestParams {
 		request[param.Name] = param.Value()
 	}
 
-	return request
+	return request, nil
 }
 
 // Executes the AWS Lambda function specified by an ARN, passing the specified payload, if any.

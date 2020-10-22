@@ -6,6 +6,7 @@ import (
 
 // A Provider defines what happens when a command is invoked on the command line.
 type Provider interface {
+	ArgsUsage() string
 	CLIActionFn() cli.ActionFunc
 	CLIFlags() []cli.Flag
 	Type() string

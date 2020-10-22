@@ -56,10 +56,11 @@ func NewCommandSpec(content []byte) (*Command, error) {
 // CLICommand creates a CLI command for this command.
 func (c Command) CLICommand() *cli.Command {
 	return &cli.Command{
-		Name:   c.Name,
-		Usage:  c.Description,
-		Action: c.Provider.CLIActionFn(),
-		Flags:  c.Provider.CLIFlags(),
+		Name:      c.Name,
+		Usage:     c.Description,
+		Action:    c.Provider.CLIActionFn(),
+		ArgsUsage: c.Provider.ArgsUsage(),
+		Flags:     c.Provider.CLIFlags(),
 	}
 }
 

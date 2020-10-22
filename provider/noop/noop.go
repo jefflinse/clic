@@ -15,6 +15,11 @@ func New(v interface{}) (provider.Provider, error) {
 	return &Spec{}, nil
 }
 
+// ArgsUsage returns usage text for the arguments.
+func (s Spec) ArgsUsage() string {
+	return "fooo"
+}
+
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	return func(ctx *cli.Context) error {

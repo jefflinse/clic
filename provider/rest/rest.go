@@ -7,6 +7,8 @@ import (
 	goioutil "io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 
 	"github.com/jefflinse/handyman/ioutil"
 	"github.com/jefflinse/handyman/provider"
@@ -29,12 +31,25 @@ func New(v interface{}) (provider.Provider, error) {
 	return &s, ioutil.Intermarshal(v, &s)
 }
 
+// ArgsUsage returns usage text for the arguments.
+func (s Spec) ArgsUsage() string {
+	argNames := []string{}
+	for _, param := range s.allParams() {
+		if param.Required {
+			argNames = append(argNames, param.CLIFlagName())
+		}
+	}
+
+	return strings.Join(argNames, " ")
+}
+
 // CLIActionFn creates a CLI action fuction.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
 		req, err := s.parameterizedRequest(ctx)
 		if err != nil {
-			return err
+			fmt.Fprintf(os.Stderr, "%v\n\n", err)
+			cli.ShowCommandHelpAndExit(ctx, ctx.Command.Name, 1)
 		}
 
 		code, body, err := doRequest(req)
@@ -95,8 +110,11 @@ func (s *Spec) parameterizedRequest(ctx *cli.Context) (*http.Request, error) {
 	}
 
 	if len(s.QueryParams) > 0 {
+		if err := s.QueryParams.ResolveValues(ctx); err != nil {
+			return nil, err
+		}
+
 		query := req.URL.Query()
-		s.QueryParams.ResolveValues(ctx)
 		for _, param := range s.QueryParams {
 			query.Add(param.Name, fmt.Sprintf("%v", param.Value()))
 		}
@@ -106,7 +124,10 @@ func (s *Spec) parameterizedRequest(ctx *cli.Context) (*http.Request, error) {
 
 	body := map[string]interface{}{}
 	if len(s.BodyParams) > 0 {
-		s.BodyParams.ResolveValues(ctx)
+		if err := s.BodyParams.ResolveValues(ctx); err != nil {
+			return nil, err
+		}
+
 		for _, param := range s.BodyParams {
 			body[param.Name] = param.Value()
 		}

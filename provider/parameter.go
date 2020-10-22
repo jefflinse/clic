@@ -184,7 +184,9 @@ type ParameterSet []*Parameter
 func (ps ParameterSet) CreateCLIFlags() []cli.Flag {
 	flags := []cli.Flag{}
 	for _, param := range ps {
-		flags = append(flags, param.CreateCLIFlag())
+		if !param.Required {
+			flags = append(flags, param.CreateCLIFlag())
+		}
 	}
 
 	return flags
@@ -202,13 +204,53 @@ func (ps ParameterSet) InjectValues(str string) string {
 	return result
 }
 
-// ResolveValues assigns values to the parameters from defaults and the CLI context.
-func (ps ParameterSet) ResolveValues(ctx *cli.Context) {
-	for _, p := range ps {
-		p.SetDefaultValue()
-		if ctx == nil {
-			continue
+// Optional returns a subset of the ParameterSet containing only optional parameters.
+func (ps ParameterSet) Optional() ParameterSet {
+	optional := ParameterSet{}
+	for _, param := range ps {
+		if !param.Required {
+			optional = append(optional, param)
 		}
+	}
+
+	return optional
+}
+
+// Required returns a subset of the ParameterSet containing only required parameters.
+func (ps ParameterSet) Required() ParameterSet {
+	required := ParameterSet{}
+	for _, param := range ps {
+		if param.Required {
+			required = append(required, param)
+		}
+	}
+
+	return required
+}
+
+// ResolveValues assigns values to the parameters from defaults and the CLI context.
+func (ps ParameterSet) ResolveValues(ctx *cli.Context) error {
+	args := ctx.Args().Slice()
+	required := ps.Required()
+
+	// assign values from args
+	for _, p := range required {
+		if len(args) == 0 {
+			return fmt.Errorf("missing required argument: %s", p.CLIFlagName())
+		}
+		var value string
+		value, args = args[0], args[1:]
+		p.SetValue(value)
+	}
+
+	if len(args) > 0 {
+		return fmt.Errorf("unexpected argument(s): %v", strings.Join(args, " "))
+	}
+
+	// assign values from flags
+	for _, p := range ps.Optional() {
+		// assign default value
+		p.SetDefaultValue()
 
 		for _, flagName := range ctx.LocalFlagNames() {
 			if flagName != p.CLIFlagName() {
@@ -227,6 +269,8 @@ func (ps ParameterSet) ResolveValues(ctx *cli.Context) {
 			}
 		}
 	}
+
+	return nil
 }
 
 // Validate validates the parameter set, returning the first error it encounters, if any.

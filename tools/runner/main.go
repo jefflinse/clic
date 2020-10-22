@@ -28,7 +28,10 @@ func main() {
 		args = append(args, os.Args[2:]...)
 	}
 
-	app.Run(args)
+	if err := app.Run(args); err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
+	}
 }
 
 func fatalOn(err error, reason string) {

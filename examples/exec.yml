@@ -5,13 +5,13 @@ commands:
     description: prints a message
     exec:
       name: echo
-      args: ["{{params.message}} {{params.additional_message}}"]
+      args: ["{{params.message}} {{params.also}}"]
       params:
         - name: message
           type: string
           description: the primary message
           required: true
-        - name: additional_message
+        - name: also
           type: string
           description: an additional message
           required: false
