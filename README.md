@@ -12,10 +12,11 @@ Handyman is a set of tools that allow you to define, generate, and run custom CL
   - [App](#app)
   - [Command](#command)
   - [Parameter](#parameter)
-- [Command Types](#command-types)
+- [Command Providers](#command-providers)
   - [exec - run any local command](#exec)
   - [lambda - execute an AWS lambda function](#lambda)
   - [noop - do nothing](#noop)
+  - [rest - make a request to a REST endpoint](#rest)
 - [Roadmap](#roadmap)
 
 ## Overview
@@ -90,7 +91,7 @@ $ ./myapp say-hello
 Hello, World!
 ```
 
-Handyman can do more than just execute local commands. See the complete list of [Command Types](#command-types) to learn more.
+Handyman can do more than just execute local commands. See the complete list of [Command Providers](#command-providers) to learn more.
 
 ## Specification Format
 
@@ -114,9 +115,9 @@ A command spec has the following properties:
 | ------- | ----------- | ---- | -------- |
 | `name` | The name of the command as invoked on the command line. | string | true |
 | `description` | A description of the command. | string | true |
-| `<type>` | Configuration for the provider that executes the logic for the command. | object | true |
+| `<provider>` | Configuration for the provider that executes the logic for the command. | object | true |
 
-`<type>` must be the name of a supported command type, and its value must be an object defining the configuration for that command type. See [Command Types](#command-types) for information how how to configure each command type.
+`<provider>` must be the name of a supported command provider, and its value must be an object defining the configuration for that provider. See [Command Providers](#command-providers) for information how how to configure each provider.
 
 ### Parameter
 
@@ -125,15 +126,17 @@ Some commands take additional parameters. Each parameter spec has the following 
 | Propery | Description | Type | Required |
 | ------- | ----------- | ---- | -------- |
 | `name` | The name of the parameter. Must use snake_casing. | string | true |
-| `description` | A description of the parameter. | string | true |
+| `description` | A description of the parameter. | string | false |
 | `type` | The type of value the parameter accepts. Must be one of [**int**, **number**, **string**]. | string | true |
 | `required` | Whether or not the parameter is required. Default is false. | bool | false |
+| `default` | The default value to use for the parameter, if the parameter is not required. | _type_ | false |
 
-## Command Types
+## Command Providers
 
 - [exec](#exec)
 - [lambda](#lambda)
 - [noop](#noop)
+- [rest](#rest)
 
 ### exec
 
@@ -144,12 +147,17 @@ name: current-year
 description: print the current year
 exec:
   name: date
-  args: ["+Y"]
+  args: ["{{params.format}}"]
+  params:
+    - name: format
+      type: string
+      description: the format string for the date
+      default: "+Y"
 ```
 
 ### lambda
 
-A `lambda` command executes an AWS Lambda function. It prints the response to stdout and any errors to stderr, respectively. When using this command type, the command spec must include the ARN of the Lambda to execute, and optionally any request parameters to be included. The request parameters are available as command line flags in the app.
+A `lambda` command executes an AWS Lambda function. It prints the response to stdout and any errors to stderr, respectively. When using this provider, the command spec must include the ARN of the Lambda to execute, and optionally any request parameters to be included. The request parameters are available as command line flags in the app.
 
 Here's an example of a command that invokes a lambda function that accepts a single request parameter called `site_name`:
 
@@ -177,6 +185,22 @@ description: does absolutely nothing
 noop:
 ```
 
+### rest
+
+A `rest` command makes a request to a REST endpoint. It can pass parameters as query string parameters or JSON-formatted request body parameters.
+
+```yaml
+name: search
+description: search Google for something
+rest:
+  endpoint: https://google.com
+  query_params:
+    - name: q
+      type: string
+      description: the query string for the search
+      required: true
+```
+
 ## Roadmap
 
 A very rough list of features and improvements I have in mind:
@@ -184,8 +208,6 @@ A very rough list of features and improvements I have in mind:
 - App-level and command-level versioning
 - Support for app- and command-level variables
 - Support directory-based spec composition (a la Terraform)
-- Exec provider should support parameters
-- Add REST provider for calling endpoints
 - Support reading parameter values from files
 - Support for producing binaries/scripts for other languages
 - Improved unit test coverage
