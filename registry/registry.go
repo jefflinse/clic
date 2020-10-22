@@ -20,10 +20,8 @@ func Load() (Registry, error) {
 		return nil, err
 	}
 
-	if !fileExists(file) {
-		if err := createRegistryFile(file); err != nil {
-			return nil, err
-		}
+	if err := ensureRegistryFileExists(file); err != nil {
+		return nil, err
 	}
 
 	content, err := ioutil.ReadFile(file)
@@ -38,6 +36,11 @@ func Load() (Registry, error) {
 
 	lines := strings.Split(string(content), "\n")
 	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			// ignore blank lines
+			continue
+		}
+
 		parts := strings.Split(line, "=")
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid registry entry (line %d): '%s'", i, line)
@@ -55,6 +58,7 @@ func Load() (Registry, error) {
 	return reg, nil
 }
 
+// Add registers an app.
 func (r Registry) Add(name string, path string) error {
 	if path, ok := r[name]; ok {
 		return fmt.Errorf("'%s' already registered as '%s'", name, path)
@@ -65,6 +69,7 @@ func (r Registry) Add(name string, path string) error {
 	return r.Save()
 }
 
+// Remove unregisters an app.
 func (r Registry) Remove(name string) error {
 	if _, ok := r[name]; !ok {
 		return fmt.Errorf("'%s' is not registered", name)
@@ -75,10 +80,11 @@ func (r Registry) Remove(name string) error {
 	return r.Save()
 }
 
+// Save saves the registry to disk.
 func (r Registry) Save() error {
 	builder := strings.Builder{}
 	for name, path := range r {
-		builder.WriteString(fmt.Sprintf("%s = %s", name, path))
+		builder.WriteString(fmt.Sprintf("%s = %s\n", name, path))
 	}
 
 	file, err := registryFilePath()
@@ -89,22 +95,13 @@ func (r Registry) Save() error {
 	return ioutil.WriteFile(file, []byte(builder.String()), 0644)
 }
 
-func createRegistryFile(name string) error {
+func ensureRegistryFileExists(name string) error {
 	file, err := os.OpenFile(name, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
 
 	return file.Close()
-}
-
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-
-	return !info.IsDir()
 }
 
 func registryFilePath() (string, error) {

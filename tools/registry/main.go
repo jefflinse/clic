@@ -4,7 +4,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,7 +34,6 @@ func main() {
 				absPath, err := filepath.Abs(path)
 				fatalOn(err, "bad file path")
 
-				log.Println(absPath)
 				content, err := ioutil.ReadFile(absPath)
 				fatalOn(err, "failed to read spec file")
 
