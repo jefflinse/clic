@@ -19,6 +19,7 @@ type Parameter struct {
 	Type        string      `json:"type"                  yaml:"type"`
 	Required    bool        `json:"required"              yaml:"required"`
 	Default     interface{} `json:"default,omitempty"     yaml:"default,omitempty"`
+	AsFlag      string      `json:"as_flag,omitempty"     yaml:"as_flag,omitempty"`
 
 	value interface{}
 }
@@ -116,6 +117,17 @@ func (param *Parameter) SetValue(value interface{}) {
 
 // Value returns the parameter's assigned value.
 func (param *Parameter) Value() interface{} {
+	if param.Type == BoolParamType {
+		value, _ := param.value.(bool)
+		if param.AsFlag != "" {
+			if value {
+				return param.AsFlag
+			}
+
+			return ""
+		}
+	}
+
 	return param.value
 }
 

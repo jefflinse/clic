@@ -5,14 +5,15 @@ commands:
     description: prints a message
     exec:
       name: echo
-      args: ["{{params.message}} {{params.also}}"]
+      args: ["{{params.use_dash_e}}", "{{params.message}}"]
       params:
         - name: message
           type: string
           description: the primary message
           required: true
-        - name: also
-          type: string
-          description: an additional message
+        - name: use_dash_e
+          type: bool
+          description: whether or not to use -e
           required: false
+          as_flag: -e
       echo: true

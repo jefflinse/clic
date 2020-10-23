@@ -89,16 +89,24 @@ func (s Spec) Validate() error {
 
 func (s *Spec) parameterizedNameAndArgs(ctx *cli.Context) (string, []string, error) {
 	name := s.Name
-	args := make([]string, len(s.Args))
-	copy(args, s.Args)
+	rawArgs := make([]string, len(s.Args))
+	copy(rawArgs, s.Args)
 
 	if err := s.Parameters.ResolveValues(ctx); err != nil {
 		return "", nil, err
 	}
 
 	name = s.Parameters.InjectValues(name)
-	for i := range args {
-		args[i] = s.Parameters.InjectValues(args[i])
+	for i := range rawArgs {
+		rawArgs[i] = s.Parameters.InjectValues(rawArgs[i])
+	}
+
+	// strip out empty arguments
+	args := []string{}
+	for _, arg := range rawArgs {
+		if arg != "" {
+			args = append(args, arg)
+		}
 	}
 
 	return name, args, nil
