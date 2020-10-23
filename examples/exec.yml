@@ -15,3 +15,4 @@ commands:
           type: string
           description: an additional message
           required: false
+      echo: true

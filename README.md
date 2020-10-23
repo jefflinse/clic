@@ -211,7 +211,6 @@ A very rough list of features and improvements I have in mind:
 - Support reading parameter values from files
 - Support for producing binaries/scripts for other languages
 - Improved unit test coverage
-- exec: option to echo command before running
 - exec: bool params should have optional "as_flag" property to translate to 3rd party app flags
 - registry: cache latest spec content so app can be run even if spec is moved or deleted
 - Add run protection for spec files obtained from the internet

@@ -16,6 +16,7 @@ type Spec struct {
 	Name       string                `json:"name"             yaml:"name"`
 	Args       []string              `json:"args,omitempty"   yaml:"args,omitempty"`
 	Parameters provider.ParameterSet `json:"params,omitempty" yaml:"params,omitempty"`
+	Echo       bool                  `json:"echo,omitempty"   yaml:"echo,omitempty"`
 }
 
 // New creates a new provider.
@@ -38,6 +39,10 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 		command.Stdin = os.Stdin
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
+
+		if s.Echo {
+			fmt.Printf("%s %s\n", name, strings.Join(args, " "))
+		}
 
 		if err := command.Run(); err != nil {
 			if exitErr, ok := err.(*osexec.ExitError); ok {
