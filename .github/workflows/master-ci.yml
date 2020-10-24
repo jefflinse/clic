@@ -1,0 +1,43 @@
+name: Master CI
+on:
+  push:
+    branches:
+      - master
+jobs:
+  ci:
+    name: Build + Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v2.3.1
+
+      - name: Set up Go 1.15
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.15
+
+      - name: Run Unit Tests
+        run: make clean test
+
+      - name: Bump and Tag Version
+        id: bumptag
+        uses: jefflinse/pr-semver-bump@v1
+        with:
+          mode: bump
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          require-release-notes: true
+          with-v: true
+
+      - name: Build and Package Artifacts
+        run: make clean package
+        env:
+          VERSION: ${{ steps.bumptag.outputs.version }}
+
+      - name: Publish Release Artifacts
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*
+          file_glob: true
+          tag: ${{ steps.bumptag.outputs.version }}
+          body: ${{ steps.bumptag.outputs.release-notes }}
