@@ -8,6 +8,7 @@ import (
 	"github.com/jefflinse/handyman"
 	"github.com/jefflinse/handyman/ioutil"
 	"github.com/jefflinse/handyman/registry"
+	"github.com/jefflinse/handyman/spec"
 	"github.com/urfave/cli/v2"
 )
 
@@ -21,7 +22,10 @@ func main() {
 		CustomAppHelpTemplate: handyman.AppHelpTemplate(),
 	}
 
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 }
 
 func commands() []*cli.Command {
@@ -76,6 +80,13 @@ func commands() []*cli.Command {
 			Flags:     []cli.Flag{},
 			Action:    run,
 		},
+		{
+			Name:      "validate",
+			Usage:     "validate a handyman spec",
+			ArgsUsage: "specfile",
+			Flags:     []cli.Flag{},
+			Action:    validate,
+		},
 	}
 }
 
@@ -116,6 +127,28 @@ func run(hmCtx *cli.Context) error {
 	if err := app.Run(hmCtx.Args().Tail()); err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
+	}
+
+	return nil
+}
+
+func validate(hmCtx *cli.Context) error {
+	if hmCtx.NArg() != 1 {
+		cli.ShowCommandHelpAndExit(hmCtx, "validate", 1)
+	}
+
+	content, err := goioutil.ReadFile(hmCtx.Args().First())
+	if err != nil {
+		return fmt.Errorf("failed to read spec file: %w", err)
+	}
+
+	appSpec, err := spec.NewAppSpec(content)
+	if err != nil {
+		return fmt.Errorf("failed to parse spec file: %w", err)
+	}
+
+	if err := appSpec.Validate(); err != nil {
+		return err
 	}
 
 	return nil

@@ -3,15 +3,15 @@ all: build
 source_files = *.go */*.go */*/*.go
 coverage_profile = coverage.out
 coverage_report = coverage.report.out
+hm_bim = hm/hm
 build_bin = tools/build/build
 registry_bin = tools/registry/registry
-run_bin = tools/run/run
 validate_bin = tools/validate/validate
 
 clean:
+	cd hm && go clean -i -testcache ./...
 	cd tools/build && go clean -i -testcache ./...
 	cd tools/registry && go clean -i -testcache ./...
-	cd tools/run && go clean -i -testcache ./...
 	cd tools/validate && go clean -i -testcache ./...
 	rm -f $(coverage_profile) $(coverage_report)
 
@@ -30,9 +30,6 @@ $(build_bin): $(source_files)
 
 $(registry_bin): $(source_files)
 	cd tools/registry && go build
-
-$(run_bin): $(source_files)
-	cd tools/run && go build
 
 $(validate_bin): $(source_files)
 	cd tools/validate && go build
