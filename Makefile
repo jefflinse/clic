@@ -1,26 +1,34 @@
 all: clean build
 
-source_files = *.go */*.go */*/*.go
-bin_dir = hm/bin
+# locations
+repo_root := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+bin_dir    = $(repo_root)/bin
+dist_dir   = $(repo_root)/dist
+
+# build and package outputs
+hm_bin     = $(bin_dir)/hm
+hm_tarball = $(dist_dir)/handyman-darwin-amd64-$(VERSION).tar.gz
+
+# files
+source_files     = *.go */*.go */*/*.go
 coverage_profile = coverage.out
-coverage_report = coverage.report.out
-hm_bin = $(bin_dir)/hm
+coverage_report  = coverage.report.out
 
-git_rev := $(shell git rev-parse --short HEAD)
-git_tag := $(shell git describe --tags --match "v*.*.*" --abbrev=0 HEAD 2>/dev/null)
-timestamp := $(shell date -u +%Y%m%d%H%M%S)
-
+# versioning
+ifndef VERSION
+git_rev   := $(shell git rev-parse --short HEAD)
+git_tag   := $(shell git describe --tags --match "v*.*.*" --abbrev=0 HEAD 2>/dev/null)
 ifeq ($(git_tag),)
 git_tag := v0.0.0
 endif
-
-ifndef VERSION
-VERSION := $(git_tag)-$(git_rev)-$(timestamp)
+timestamp := $(shell date -u +%Y%m%d%H%M%S)
+VERSION   := $(git_tag)-$(git_rev)-$(timestamp)
 endif
 
 clean:
 	go clean -i -testcache ./...
 	rm -rf $(bin_dir)
+	rm -rf $(dist_dir)
 	rm -f $(coverage_profile) $(coverage_report)
 
 build: $(hm_bin)
@@ -37,15 +45,14 @@ coverage-html: $(coverage_profile)
 
 $(hm_bin): $(source_files)
 	mkdir -p $(bin_dir)
-	cd hm && go build -ldflags "-X 'main.Version=$(VERSION)'" -o bin/hm
+	cd hm && go build -ldflags "-X 'main.Version=$(VERSION)'" -o $(hm_bin)
 
 $(hm_tarball): $(hm_bin)
-	tar -zcvf handyman-darwin-amd64-$(VERSION).tar.gz $(bin_dir)
+	mkdir -p $(dist_dir)
+	tar -czf $(hm_tarball) -C $(bin_dir) .
 
 $(coverage_report): $(coverage_profile)
 	go tool cover -func=$(coverage_profile) > $(coverage_report)
 
 $(coverage_profile): $(source_files)
 	go test -tags test -coverprofile=$(coverage_profile) -race ./...
-
-
