@@ -1,9 +1,10 @@
 all: clean build
 
 # locations
-repo_root := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-bin_dir    = $(repo_root)/bin
-dist_dir   = $(repo_root)/dist
+repo_root       := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+repo_parent_dir := $(realpath $(repo_root)/..)
+bin_dir          = $(repo_root)/bin
+dist_dir         = $(repo_root)/dist
 
 # build and package outputs
 hm_bin     = $(bin_dir)/hm
@@ -44,8 +45,14 @@ coverage-html: $(coverage_profile)
 	go tool cover -html=$(coverage_profile)
 
 $(hm_bin): $(source_files)
+	echo $(repo_parent_dir)
 	mkdir -p $(bin_dir)
-	cd hm && go build -ldflags "-X 'main.Version=$(VERSION)'" -o $(hm_bin)
+	cd hm && \
+	GOOS=darwin GOARCH=amd64 \
+	go build \
+	-ldflags "-X 'main.Version=$(VERSION)'" \
+	-trimpath \
+	-o $(hm_bin)
 
 $(hm_tarball): $(hm_bin)
 	mkdir -p $(dist_dir)
