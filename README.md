@@ -214,4 +214,3 @@ A very rough list of features and improvements I have in mind:
 - registry: cache latest spec content so app can be run even if spec is moved or deleted
 - Add run protection for spec files obtained from the internet
 - Providers for Azure Functions and Google Cloud Functions
-- Combine CLI tools into single binary
