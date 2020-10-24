@@ -36,9 +36,7 @@ func commands() []*cli.Command {
 			CustomHelpTemplate: handyman.CommandHelpTemplate(),
 			ArgsUsage:          "specfile",
 			Flags:              []cli.Flag{},
-			Action: func(ctx *cli.Context) error {
-				return nil
-			},
+			Action:             build,
 		},
 		{
 			Name:  "registry",
