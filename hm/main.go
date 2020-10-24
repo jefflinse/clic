@@ -12,6 +12,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// Version is stamped by the build process.
+var Version string
+
 func main() {
 	app := &cli.App{
 		Name:                  "hm",
@@ -83,6 +86,16 @@ func commands() []*cli.Command {
 			ArgsUsage:          "specfile",
 			Flags:              []cli.Flag{},
 			Action:             validate,
+		},
+		{
+			Name:               "version",
+			Usage:              "print the current handyman CLI version",
+			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			Flags:              []cli.Flag{},
+			Action: func(ctx *cli.Context) error {
+				fmt.Printf("handyman CLI version %s\n", Version)
+				return nil
+			},
 		},
 	}
 }
