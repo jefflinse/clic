@@ -2,10 +2,12 @@ package registry
 
 import (
 	"fmt"
-	"io/ioutil"
+	goioutil "io/ioutil"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/jefflinse/handyman/ioutil"
 )
 
 const registryFileName = ".handyman_registry"
@@ -24,7 +26,7 @@ func Load() (Registry, error) {
 		return nil, err
 	}
 
-	content, err := ioutil.ReadFile(file)
+	content, err := goioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +75,7 @@ func (r Registry) Add(name string, path string) error {
 func (r Registry) Prune() (int, error) {
 	numRemoved := 0
 	for name, path := range r {
-		if fileExists(path) {
+		if ioutil.FileExists(path) {
 			continue
 		}
 
@@ -110,7 +112,7 @@ func (r Registry) Save() error {
 		return err
 	}
 
-	return ioutil.WriteFile(file, []byte(builder.String()), 0644)
+	return goioutil.WriteFile(file, []byte(builder.String()), 0644)
 }
 
 func ensureRegistryFileExists(name string) error {
@@ -120,15 +122,6 @@ func ensureRegistryFileExists(name string) error {
 	}
 
 	return file.Close()
-}
-
-func fileExists(name string) bool {
-	info, err := os.Stat(name)
-	if os.IsNotExist(err) {
-		return false
-	}
-
-	return !info.IsDir()
 }
 
 func registryFilePath() (string, error) {

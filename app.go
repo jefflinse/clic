@@ -39,19 +39,20 @@ func newAppFromSpec(appSpec *spec.App) (*App, error) {
 		Usage:                 appSpec.Description,
 		Commands:              make([]*cli.Command, 0),
 		HideHelp:              true,
-		CustomAppHelpTemplate: appHelpTemplate(),
+		CustomAppHelpTemplate: AppHelpTemplate(),
 	}
 
 	for _, commandSpec := range appSpec.Commands {
 		cliCmd := commandSpec.CLICommand()
-		cliCmd.CustomHelpTemplate = commandHelpTemplate()
+		cliCmd.CustomHelpTemplate = CommandHelpTemplate()
 		cliApp.Commands = append(cliApp.Commands, cliCmd)
 	}
 
 	return &App{cliApp: cliApp, spec: appSpec}, nil
 }
 
-func appHelpTemplate() string {
+// AppHelpTemplate defines the layout of app help.
+func AppHelpTemplate() string {
 	return `{{.Name}}{{if .Usage}} - {{.Usage}}{{end}}
 
 usage:
@@ -70,7 +71,8 @@ global options:
 `
 }
 
-func commandHelpTemplate() string {
+// CommandHelpTemplate defines the layout of command help.
+func CommandHelpTemplate() string {
 	return `{{.HelpName}} - {{.Usage}}
 
 usage:
