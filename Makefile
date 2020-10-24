@@ -15,7 +15,7 @@ clean:
 	cd tools/validate && go clean -i -testcache ./...
 	rm -f $(coverage_profile) $(coverage_report)
 
-build: $(validate_bin) $(run_bin) $(build_bin)
+build: $(build_bin) $(registry_bin) $(run_bin) $(validate_bin)
 
 test: $(coverage_profile)
 
@@ -28,14 +28,14 @@ coverage-html: $(coverage_profile)
 $(build_bin): $(source_files)
 	cd tools/build && go build
 
+$(registry_bin): $(source_files)
+	cd tools/registry && go build
+
 $(run_bin): $(source_files)
 	cd tools/run && go build
 
 $(validate_bin): $(source_files)
 	cd tools/validate && go build
-
-$(registry_bin): $(source_files)
-	cd tools/registry && go build
 
 $(coverage_report): $(coverage_profile)
 	go tool cover -func=$(coverage_profile) > $(coverage_report)
