@@ -39,51 +39,50 @@ func commands() []*cli.Command {
 			Action:             build,
 		},
 		{
-			Name:  "registry",
-			Usage: "add or remove registered apps",
-			Subcommands: []*cli.Command{
-				{
-					Name:      "add",
-					Usage:     "registers an app with the specified path",
-					ArgsUsage: "specfile",
-					Flags:     []cli.Flag{},
-					Action: func(ctx *cli.Context) error {
-						return nil
-					},
-				},
-				{
-					Name:  "list",
-					Usage: "lists registered apps",
-					Flags: []cli.Flag{},
-					Action: func(ctx *cli.Context) error {
-						return nil
-					},
-				},
-				{
-					Name:      "rm",
-					Usage:     "unregisters an app with the specified name",
-					ArgsUsage: "name",
-					Flags:     []cli.Flag{},
-					Action: func(ctx *cli.Context) error {
-						return nil
-					},
-				},
-			},
-			Flags: []cli.Flag{},
+			Name:               "prune-registry",
+			Usage:              "removes registered apps whose spec files no longer exist",
+			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			Flags:              []cli.Flag{},
+			Action:             pruneRegistry,
 		},
 		{
-			Name:      "run",
-			Usage:     "directly run a handyman spec",
-			ArgsUsage: "specfile",
-			Flags:     []cli.Flag{},
-			Action:    run,
+			Name:               "register",
+			Usage:              "registers an app with the specified path",
+			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			ArgsUsage:          "specfile",
+			Flags:              []cli.Flag{},
+			Action:             register,
 		},
 		{
-			Name:      "validate",
-			Usage:     "validate a handyman spec",
-			ArgsUsage: "specfile",
-			Flags:     []cli.Flag{},
-			Action:    validate,
+			Name:               "list-registry",
+			Usage:              "lists registered apps",
+			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			Flags:              []cli.Flag{},
+			Action:             listRegistry,
+		},
+		{
+			Name:               "run",
+			Usage:              "directly run a handyman spec",
+			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			ArgsUsage:          "specfile",
+			Flags:              []cli.Flag{},
+			Action:             run,
+		},
+		{
+			Name:               "unregister",
+			Usage:              "unregisters an app with the specified name",
+			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			ArgsUsage:          "name",
+			Flags:              []cli.Flag{},
+			Action:             unregister,
+		},
+		{
+			Name:               "validate",
+			Usage:              "validate a handyman spec",
+			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			ArgsUsage:          "specfile",
+			Flags:              []cli.Flag{},
+			Action:             validate,
 		},
 	}
 }
