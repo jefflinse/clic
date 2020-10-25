@@ -1,5 +1,8 @@
 all: clean build
 
+PLAT ?= darwin
+ARCH ?= amd64
+
 # locations
 repo_root       := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 repo_parent_dir := $(realpath $(repo_root)/..)
@@ -48,7 +51,7 @@ $(hm_bin): $(source_files)
 	echo $(repo_parent_dir)
 	mkdir -p $(bin_dir)
 	cd hm && \
-	GOOS=darwin GOARCH=amd64 \
+	GOOS=$(PLAT) GOARCH=$(ARCH) \
 	go build \
 	-ldflags "-X 'main.Version=$(VERSION)'" \
 	-trimpath \
