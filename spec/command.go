@@ -58,8 +58,9 @@ func NewCommandSpec(content []byte) (*Command, error) {
 // CLICommand creates a CLI command for this command.
 func (c *Command) CLICommand() *cli.Command {
 	cliCmd := &cli.Command{
-		Name:  c.Name,
-		Usage: c.Description,
+		Name:            c.Name,
+		Usage:           c.Description,
+		HideHelpCommand: true,
 	}
 
 	if len(c.Subcommands) > 0 {

@@ -9,8 +9,11 @@ commands:
         exec:
           name: echo
           args: ["doing something"]
-      - name: something-else
-        description: does something else
-        exec:
-          name: echo
-          args: ["doing something else"]
+      - name: another
+        description: does other things
+        subcommands:
+          - name: thing
+            description: "does another thing"
+            exec:
+              name: echo
+              args: ["doing something else"]
