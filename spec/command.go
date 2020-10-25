@@ -22,6 +22,8 @@ type Command struct {
 	Subcommands []*Command        `json:"subcommands,omitempty" yaml:"subcommands,omitempty"`
 }
 
+type contentUnmarshaler func(data []byte, target interface{}) error
+
 var requiredCommandFields = []string{
 	"name",
 	"description",
@@ -79,79 +81,52 @@ func (c *Command) CLICommand() *cli.Command {
 
 // UnmarshalJSON unmarshals the specified JSON data into the command.
 func (c *Command) UnmarshalJSON(data []byte) error {
-	type commandMetadata struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
+	return c.unmarshalContent(json.Unmarshal, data)
+}
+
+// UnmarshalYAML unmarshals the specified YAML data into the command.
+func (c *Command) UnmarshalYAML(data []byte) error {
+	return c.unmarshalContent(yaml.Unmarshal, data)
+}
+
+// Validate validates a Command spec.
+func (c *Command) Validate() error {
+	if c.Name == "" {
+		return NewInvalidCommandSpecError("missing name")
+	} else if c.Description == "" {
+		return NewInvalidCommandSpecError("missing description")
+	} else if c.Provider == nil && len(c.Subcommands) == 0 {
+		return NewInvalidCommandSpecError("missing provider or subcommands")
+	} else if c.Provider != nil && len(c.Subcommands) > 0 {
+		return NewInvalidCommandSpecError("cannot specify both provider and subcommands")
 	}
 
-	metadata := commandMetadata{}
-	if err := json.Unmarshal(data, &metadata); err != nil {
-		return err
+	if c.Provider != nil {
+		return c.Provider.Validate()
 	}
 
-	c.Name = metadata.Name
-	c.Description = metadata.Description
-
-	content := map[string]interface{}{}
-	if err := json.Unmarshal(data, &content); err != nil {
-		return err
-	}
-
-	// either we have subcommands, or the provider type
-	// is the remaining non-required field name
-	if len(content) == len(requiredCommandFields) {
-		// don't bother looking for a provider if not enough fields are provided
-		return nil
-	} else if len(content) > len(requiredCommandFields) {
-		for key := range content {
-			isRequiredField := false
-			for _, field := range requiredCommandFields {
-				if key == field {
-					isRequiredField = true
-					break
-				}
-			}
-
-			if !isRequiredField {
-				if key == "subcommands" {
-					subcommands, ok := content[key].([]interface{})
-					if !ok {
-						return fmt.Errorf("cannot coerce subcommands to []interface{}")
-					}
-
-					for _, data := range subcommands {
-						subcommand := &Command{}
-						if err := ioutil.Intermarshal(data, subcommand); err != nil {
-							return fmt.Errorf("failed to parse subcommands: %w", err)
-						}
-
-						c.Subcommands = append(c.Subcommands, subcommand)
-					}
-
-				} else if providerCtor, ok := commandMap[key]; ok {
-					provider, err := providerCtor(content[key])
-					if err != nil {
-						return err
-					}
-
-					c.Provider = provider
-				}
-			}
+	for _, subcommand := range c.Subcommands {
+		if err := subcommand.Validate(); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// UnmarshalYAML unmarshals the specified YAML data into the command.
-func (c *Command) UnmarshalYAML(data []byte) error {
+// NewInvalidCommandSpecError creates a new error indicating that a command spec is invalid.
+func NewInvalidCommandSpecError(reason string) error {
+	return fmt.Errorf("invalid command spec: %s", reason)
+}
+
+func (c *Command) unmarshalContent(unmarshaler func(d []byte, target interface{}) error, data []byte) error {
 	type commandMetadata struct {
-		Name        string `yaml:"name"`
-		Description string `yaml:"description"`
+		Name        string `json:"name"        yaml:"name"`
+		Description string `json:"description" yaml:"description"`
 	}
 
 	metadata := commandMetadata{}
-	if err := yaml.Unmarshal(data, &metadata); err != nil {
+	if err := unmarshaler(data, &metadata); err != nil {
 		return err
 	}
 
@@ -159,7 +134,7 @@ func (c *Command) UnmarshalYAML(data []byte) error {
 	c.Description = metadata.Description
 
 	content := map[string]interface{}{}
-	if err := yaml.Unmarshal(data, &content); err != nil {
+	if err := unmarshaler(data, &content); err != nil {
 		return err
 	}
 
@@ -206,34 +181,4 @@ func (c *Command) UnmarshalYAML(data []byte) error {
 	}
 
 	return nil
-}
-
-// Validate validates a Command spec.
-func (c *Command) Validate() error {
-	if c.Name == "" {
-		return NewInvalidCommandSpecError("missing name")
-	} else if c.Description == "" {
-		return NewInvalidCommandSpecError("missing description")
-	} else if c.Provider == nil && len(c.Subcommands) == 0 {
-		return NewInvalidCommandSpecError("missing provider or subcommands")
-	} else if c.Provider != nil && len(c.Subcommands) > 0 {
-		return NewInvalidCommandSpecError("cannot specify both provider and subcommands")
-	}
-
-	if c.Provider != nil {
-		return c.Provider.Validate()
-	}
-
-	for _, subcommand := range c.Subcommands {
-		if err := subcommand.Validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// NewInvalidCommandSpecError creates a new error indicating that a command spec is invalid.
-func NewInvalidCommandSpecError(reason string) error {
-	return fmt.Errorf("invalid command spec: %s", reason)
 }
