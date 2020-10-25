@@ -2,9 +2,7 @@
 
 ![build status](https://img.shields.io/github/workflow/status/jefflinse/handyman/CI) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/handyman)
 
-Don't write CLI tools to manage your services; **generate them!**
-
-Handyman is a set of tools that allow you to define, generate, and run custom CLI tools using simple text-based configuration files.
+Handyman is a tools that allow you to quickly define, generate, and run custom CLI tools using simple text-based configuration files.
 
 - [Overview](#overview)
 - [Installation](#installation)
@@ -24,11 +22,9 @@ Handyman is a set of tools that allow you to define, generate, and run custom CL
 
 If you often find yourself writing shell scripts or similar to make calling and testing various web services and cloud resources easier, Handyman is for you. Handyman lets you define a hierarchy of command line tools using a simple YAML or JSON configuation file.
 
-Handyman is built around the concept of commands, each of which is handled by a command provider. Providers define what happens when a command runs, such as executing a local command, calling a REST endpoint, interacting with a cloud resource, and so forth.
-
 ## Installation
 
-The easiest way to install handyman is via homebrew:
+The easiest way to install Handyman on macOS is via homebrew:
 
 ```bash
 $ brew install jefflinse/handyman/handyman
@@ -53,7 +49,7 @@ commands:
   - name: say-hello
     description: prints a greeting to the world
     exec:
-      path: "echo"
+      name: "echo"
       args: ["Hello, World!"]
 ```
 
@@ -124,13 +120,16 @@ The app spec has the following properties:
 
 ### Command
 
-A command spec has the following properties:
+A command spec either defines command behvior via a provider, or defines a list of subcommands. It has the following properties:
 
 | Propery | Description | Type | Required |
 | ------- | ----------- | ---- | -------- |
 | `name` | The name of the command as invoked on the command line. | string | true |
 | `description` | A description of the command. | string | true |
-| `<provider>` | Configuration for the provider that executes the logic for the command. | object | true |
+| `subcommands` | Subcommands for this command. | array | true (if no provider specified) |
+| `<provider>` | Configuration for the provider that executes the logic for the command. | object | true (if no subcommands specified) |
+
+Exactly one of `<provider>` or `subcommands` must be specified.
 
 `<provider>` must be the name of a supported command provider, and its value must be an object defining the configuration for that provider. See [Command Providers](#command-providers) for information how how to configure each provider.
 
@@ -145,6 +144,7 @@ Some commands take additional parameters. Each parameter spec has the following 
 | `type` | The type of value the parameter accepts. Must be one of [**int**, **number**, **string**]. | string | true |
 | `required` | Whether or not the parameter is required. Default is false. | bool | false |
 | `default` | The default value to use for the parameter, if the parameter is not required. | _type_ | false |
+| `as_flag` | For boolean type parameters, defining this will cause the parameter to render the specified value when true. | string | false |
 
 ## Command Providers
 
@@ -152,14 +152,15 @@ Some commands take additional parameters. Each parameter spec has the following 
 - [lambda](#lambda)
 - [noop](#noop)
 - [rest](#rest)
+- [subcommands](#subcommands)
 
 ### exec
 
 An `exec` command runs a local command. It executes the provided command, directly passing any supplied arguments.
 
 ```yaml
-name: current-year
-description: print the current year
+name: sample-exec
+description: example command spec using an exec command provider
 exec:
   name: date
   args: ["{{params.format}}"]
@@ -172,13 +173,13 @@ exec:
 
 ### lambda
 
-A `lambda` command executes an AWS Lambda function. It prints the response to stdout and any errors to stderr, respectively. When using this provider, the command spec must include the ARN of the Lambda to execute, and optionally any request parameters to be included. The request parameters are available as command line flags in the app.
+A `lambda` command executes an AWS Lambda function. It prints the response to stdout and any errors to stderr, respectively. When using this provider, the command spec must include the ARN of the Lambda to execute, and optionally any request parameters to be included. The request parameters are sent as the JSON payload to the Lambda function and are available as command line flags in the app.
 
 Here's an example of a command that invokes a lambda function that accepts a single request parameter called `site_name`:
 
 ```yaml
-name: update-site-name
-description: update the website name
+name: sample-lambda
+description: example command spec using a Lambda command provider
 lambda:
   arn: "aws:arn:some:valid:arn"
   request_params:
@@ -192,11 +193,11 @@ lambda:
 
 ### noop
 
-A `noop` command does nothing; it's truely a no-op. This is useful in scenarios where you might want to mock our your entire app's command struture in an app spec before specifying the actual behavior of each action.
+A `noop` command does nothing; it's truly a no-op. This is useful in scenarios where you might want to mock our your entire app's command struture in an app spec before specifying the actual behavior of each action.
 
 ```yaml
-name: do-nothing
-description: does absolutely nothing
+name: sample-noop
+description: example command spec using a noop command provider
 noop:
 ```
 
@@ -205,15 +206,39 @@ noop:
 A `rest` command makes a request to a REST endpoint. It can pass parameters as query string parameters or JSON-formatted request body parameters.
 
 ```yaml
-name: search
-description: search Google for something
+name: sample-rest
+description: example command spec using a REST command provider
 rest:
-  endpoint: https://google.com
+  endpoint: https://postman-echo.com/get
+  method: GET
   query_params:
-    - name: q
+    - name: my_query_param
       type: string
-      description: the query string for the search
-      required: true
+      description: a query parameter passed to the request
+```
+
+### subcommands
+
+A command specifying `subcommands` instead of a provider allows for a spec to define a "Git-like" hierarchy of commands:
+
+```yaml
+name: sample-with-subcommands
+description: example command spec using subcommands
+subcommands:  
+  - name: call-my-api
+    description: call my API
+    rest:
+      endpoint: https://postman-echo.com/get
+      method: GET
+      query_params:
+        - name: my_query_param
+          type: string
+          description: a query parameter passed to the request
+  - name: clean temp directory
+    description: cleans the temp directory
+    exec:
+      name: rm
+      args: ["-f", "/tmp"]
 ```
 
 ## Roadmap
@@ -229,3 +254,4 @@ A very rough list of features and improvements I have in mind:
 - registry: cache latest spec content so app can be run even if spec is moved or deleted
 - Add run protection for spec files obtained from the internet
 - Providers for Azure Functions and Google Cloud Functions
+- Support for specifying environment variables
