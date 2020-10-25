@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/goccy/go-yaml"
+	"github.com/jefflinse/handyman/ioutil"
 	"github.com/jefflinse/handyman/provider"
 	"github.com/jefflinse/handyman/provider/exec"
 	"github.com/jefflinse/handyman/provider/lambda"
@@ -15,10 +16,13 @@ import (
 
 // A Command specifes an action or a set of subcommands.
 type Command struct {
-	Name        string            `json:"name"        yaml:"name"`
-	Description string            `json:"description" yaml:"description"`
-	Provider    provider.Provider `json:"-"           yaml:"-"`
+	Name        string            `json:"name"                  yaml:"name"`
+	Description string            `json:"description"           yaml:"description"`
+	Provider    provider.Provider `json:"-"                     yaml:"-"`
+	Subcommands []*Command        `json:"subcommands,omitempty" yaml:"subcommands,omitempty"`
 }
+
+type contentUnmarshaler func(data []byte, target interface{}) error
 
 var requiredCommandFields = []string{
 	"name",
@@ -54,134 +58,127 @@ func NewCommandSpec(content []byte) (*Command, error) {
 }
 
 // CLICommand creates a CLI command for this command.
-func (c Command) CLICommand() *cli.Command {
-	return &cli.Command{
-		Name:      c.Name,
-		Usage:     c.Description,
-		Action:    c.Provider.CLIActionFn(),
-		ArgsUsage: c.Provider.ArgsUsage(),
-		Flags:     c.Provider.CLIFlags(),
+func (c *Command) CLICommand() *cli.Command {
+	cliCmd := &cli.Command{
+		Name:            c.Name,
+		Usage:           c.Description,
+		HideHelpCommand: true,
 	}
+
+	if len(c.Subcommands) > 0 {
+		cliCmd.Subcommands = []*cli.Command{}
+		for _, subcommand := range c.Subcommands {
+			cliCmd.Subcommands = append(cliCmd.Subcommands, subcommand.CLICommand())
+		}
+	} else {
+		cliCmd.Action = c.Provider.CLIActionFn()
+		cliCmd.ArgsUsage = c.Provider.ArgsUsage()
+		cliCmd.Flags = c.Provider.CLIFlags()
+	}
+
+	return cliCmd
 }
 
 // UnmarshalJSON unmarshals the specified JSON data into the command.
 func (c *Command) UnmarshalJSON(data []byte) error {
-	type commandMetadata struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
-
-	metadata := commandMetadata{}
-	if err := json.Unmarshal(data, &metadata); err != nil {
-		return err
-	}
-
-	c.Name = metadata.Name
-	c.Description = metadata.Description
-
-	content := map[string]interface{}{}
-	if err := json.Unmarshal(data, &content); err != nil {
-		return err
-	}
-
-	// the provider type is the remaining non-required field name
-	if len(content) == len(requiredCommandFields) {
-		// don't bother looking for a provider if not enough fields are provided
-		return nil
-	} else if len(content) > len(requiredCommandFields) {
-		for key := range content {
-			isRequiredField := false
-			for _, field := range requiredCommandFields {
-				if key == field {
-					isRequiredField = true
-					break
-				}
-			}
-
-			// use the first available provider we match
-			if !isRequiredField {
-				if providerCtor, ok := commandMap[key]; ok {
-					provider, err := providerCtor(content[key])
-					if err != nil {
-						return err
-					}
-
-					c.Provider = provider
-					return nil
-				}
-			}
-		}
-	}
-
-	return nil
+	return c.unmarshalContent(json.Unmarshal, data)
 }
 
 // UnmarshalYAML unmarshals the specified YAML data into the command.
 func (c *Command) UnmarshalYAML(data []byte) error {
-	type commandMetadata struct {
-		Name        string `yaml:"name"`
-		Description string `yaml:"description"`
-	}
-
-	metadata := commandMetadata{}
-	if err := yaml.Unmarshal(data, &metadata); err != nil {
-		return err
-	}
-
-	c.Name = metadata.Name
-	c.Description = metadata.Description
-
-	content := map[string]interface{}{}
-	if err := yaml.Unmarshal(data, &content); err != nil {
-		return err
-	}
-
-	// the provider type is the remaining non-required field name
-	if len(content) == len(requiredCommandFields) {
-		// don't bother looking for a provider if not enough fields are provided
-		return nil
-	} else if len(content) > len(requiredCommandFields) {
-		for key := range content {
-			isRequiredField := false
-			for _, field := range requiredCommandFields {
-				if key == field {
-					isRequiredField = true
-					break
-				}
-			}
-
-			// use the first available provider we match
-			if !isRequiredField {
-				if providerCtor, ok := commandMap[key]; ok {
-					provider, err := providerCtor(content[key])
-					if err != nil {
-						return err
-					}
-
-					c.Provider = provider
-					return nil
-				}
-			}
-		}
-	}
-
-	return nil
+	return c.unmarshalContent(yaml.Unmarshal, data)
 }
 
 // Validate validates a Command spec.
-func (c Command) Validate() error {
+func (c *Command) Validate() error {
 	if c.Name == "" {
 		return NewInvalidCommandSpecError("missing name")
 	} else if c.Description == "" {
 		return NewInvalidCommandSpecError("missing description")
-	} else if c.Provider == nil {
-		return NewInvalidCommandSpecError("missing provider")
+	} else if c.Provider == nil && len(c.Subcommands) == 0 {
+		return NewInvalidCommandSpecError("missing provider or subcommands")
+	} else if c.Provider != nil && len(c.Subcommands) > 0 {
+		return NewInvalidCommandSpecError("cannot specify both provider and subcommands")
 	}
 
-	return c.Provider.Validate()
+	if c.Provider != nil {
+		return c.Provider.Validate()
+	}
+
+	for _, subcommand := range c.Subcommands {
+		if err := subcommand.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // NewInvalidCommandSpecError creates a new error indicating that a command spec is invalid.
 func NewInvalidCommandSpecError(reason string) error {
 	return fmt.Errorf("invalid command spec: %s", reason)
+}
+
+func (c *Command) unmarshalContent(unmarshaler func(d []byte, target interface{}) error, data []byte) error {
+	type commandMetadata struct {
+		Name        string `json:"name"        yaml:"name"`
+		Description string `json:"description" yaml:"description"`
+	}
+
+	metadata := commandMetadata{}
+	if err := unmarshaler(data, &metadata); err != nil {
+		return err
+	}
+
+	c.Name = metadata.Name
+	c.Description = metadata.Description
+
+	content := map[string]interface{}{}
+	if err := unmarshaler(data, &content); err != nil {
+		return err
+	}
+
+	// the provider type is the remaining non-required field name
+	if len(content) == len(requiredCommandFields) {
+		// don't bother looking for a provider if not enough fields are provided
+		return nil
+	} else if len(content) > len(requiredCommandFields) {
+		for key := range content {
+			isRequiredField := false
+			for _, field := range requiredCommandFields {
+				if key == field {
+					isRequiredField = true
+					break
+				}
+			}
+
+			if !isRequiredField {
+				if key == "subcommands" {
+					subcommands, ok := content[key].([]interface{})
+					if !ok {
+						return fmt.Errorf("cannot coerce subcommands to []interface{}")
+					}
+
+					for _, data := range subcommands {
+						subcommand := &Command{}
+						if err := ioutil.Intermarshal(data, subcommand); err != nil {
+							return fmt.Errorf("failed to parse subcommands: %w", err)
+						}
+
+						c.Subcommands = append(c.Subcommands, subcommand)
+					}
+
+				} else if providerCtor, ok := commandMap[key]; ok {
+					provider, err := providerCtor(content[key])
+					if err != nil {
+						return err
+					}
+
+					c.Provider = provider
+				}
+			}
+		}
+	}
+
+	return nil
 }
