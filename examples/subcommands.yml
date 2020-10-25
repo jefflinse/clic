@@ -1,0 +1,16 @@
+name: example-subcommands
+description: an example of a Handyman app with subcommands
+commands:
+  - name: do
+    description: prints a message
+    subcommands:
+      - name: something
+        description: does something
+        exec:
+          name: echo
+          args: ["doing something"]
+      - name: something-else
+        description: does something else
+        exec:
+          name: echo
+          args: ["doing something else"]

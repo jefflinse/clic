@@ -7,6 +7,7 @@ Don't write CLI tools to manage your services; **generate them!**
 Handyman is a set of tools that allow you to define, generate, and run custom CLI tools using simple text-based configuration files.
 
 - [Overview](#overview)
+- [Installation](#installation)
 - [Quickstart](#quickstart)
 - [Specification Format](#specification-format)
   - [App](#app)
@@ -25,6 +26,20 @@ If you often find yourself writing shell scripts or similar to make calling and 
 
 Handyman is built around the concept of commands, each of which is handled by a command provider. Providers define what happens when a command runs, such as executing a local command, calling a REST endpoint, interacting with a cloud resource, and so forth.
 
+## Installation
+
+The easiest way to install handyman is via homebrew:
+
+```bash
+$ brew install jefflinse/handyman/handyman
+```
+
+Verify your installation by running the handyman CLI tool, `hm`:
+
+```bash
+$ hm version
+```
+
 ## Quickstart
 
 Create a Handyman spec:
@@ -42,12 +57,12 @@ commands:
       args: ["Hello, World!"]
 ```
 
-The `runner` tool runs a Handyman spec as an app on-the-fly. Its only required argument is the path to a spec file; all remaining arguments are passed to the app.
+The `hm run` command runs a Handyman spec as an app on-the-fly. Its only required argument is the path to a spec file; all remaining arguments are passed to the app.
 
 Run the app spec without any additional arguments to view its usage:
 
 ```bash
-$ runner myapp.yml
+$ hm run myapp.yml
 myapp - an example of a Handyman app
 
 usage:
@@ -60,14 +75,14 @@ commands:
 Now run our app spec with the `say-hello` command:
 
 ```bash
-$ runner myapp.yml say-hello
+$ hm run myapp.yml say-hello
 Hello, World!
 ```
 
-The `compiler` tool compiles a Handyman app spec into a native Go binary. Let's compile our app:
+The `hm build` command compiles a Handyman app spec into a native Go binary. Let's compile our app:
 
 ```bash
-$ compiler myapp.yml
+$ hm build myapp.yml
 
 $ ls
 myapp     myapp.yml
