@@ -3,15 +3,19 @@ all: clean build
 PLAT ?= darwin
 ARCH ?= amd64
 
+ifeq ($(PLAT),windows)
+binary_ext = .exe
+endif
+
 # locations
 repo_root       := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-repo_parent_dir := $(realpath $(repo_root)/..)
-bin_dir          = $(repo_root)/bin
+bin_root         = $(repo_root)/bin
+bin_dir          = $(bin_root)/$(PLAT)/$(ARCH)
 dist_dir         = $(repo_root)/dist
 
 # build and package outputs
 hm_bin     = $(bin_dir)/hm
-hm_tarball = $(dist_dir)/handyman-darwin-amd64-$(VERSION).tar.gz
+hm_tarball = $(dist_dir)/handyman-$(VERSION)-$(PLAT)-$(ARCH).tar.gz
 
 # files
 source_files     = *.go */*.go */*/*.go
@@ -31,7 +35,7 @@ endif
 
 clean:
 	go clean -i -testcache ./...
-	rm -rf $(bin_dir)
+	rm -rf $(bin_root)
 	rm -rf $(dist_dir)
 	rm -f $(coverage_profile) $(coverage_report)
 
@@ -48,14 +52,13 @@ coverage-html: $(coverage_profile)
 	go tool cover -html=$(coverage_profile)
 
 $(hm_bin): $(source_files)
-	echo $(repo_parent_dir)
 	mkdir -p $(bin_dir)
 	cd hm && \
 	GOOS=$(PLAT) GOARCH=$(ARCH) \
 	go build \
 	-ldflags "-X 'main.Version=$(VERSION)'" \
 	-trimpath \
-	-o $(hm_bin)
+	-o $(hm_bin)$(binary_ext)
 
 $(hm_tarball): $(hm_bin)
 	mkdir -p $(dist_dir)

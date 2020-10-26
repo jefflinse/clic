@@ -29,7 +29,11 @@ jobs:
           with-v: true
 
       - name: Build and Package Artifacts
-        run: make clean package
+        run: |
+          make clean
+          PLAT=darwin make package
+          PLAT=linux make package
+          PLAT=windows make package
         env:
           VERSION: ${{ steps.bumptag.outputs.version }}
 
