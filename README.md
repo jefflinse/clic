@@ -1,6 +1,6 @@
 # Handyman
 
-![build status](https://img.shields.io/github/workflow/status/jefflinse/handyman/CI) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/handyman)
+![build status](https://img.shields.io/github/workflow/status/jefflinse/handyman/CI) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/handyman) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/handyman)
 
 Handyman is a tools that allow you to quickly define, generate, and run custom CLI tools using simple text-based configuration files.
 
@@ -20,7 +20,39 @@ Handyman is a tools that allow you to quickly define, generate, and run custom C
 
 ## Overview
 
-If you often find yourself writing shell scripts or similar to make calling and testing various web services and cloud resources easier, Handyman is for you. Handyman lets you define a hierarchy of command line tools using a simple YAML or JSON configuation file.
+Handyman eliminates the need to maintain aliases, shell scripts, and custom CLI tools while developing and testing web services. Instead, quickly define a hierarchy of command line actions using a simple YAML or JSON spec file.
+
+```yaml
+# myapp.handyman.yml
+name: myapp
+description: tools for managing my service
+commands:
+  - name: list-items
+    description: list items in the catalog
+    rest:
+      method: GET
+      endpoint: https://postman-echo.com/get
+      query_params:
+        - name: category
+          type: string
+          description: limit to items in category
+```
+
+```bash
+$ hm run myapp.handyman.yml
+myapp - tools for managing my service
+
+usage:
+  myapp  command [command options] [arguments...]
+
+commands:
+  list-items  list all items in the catalog
+```
+
+```bash
+$ hm run myapp.handyman.yml list-items --category apparel
+{"args":{"category":"apparel"},"url":"https://postman-echo.com/get?category=apparel"}
+```
 
 ## Installation
 
