@@ -1,8 +1,0 @@
-name: myapp
-description: an example of a Handyman app
-commands:
-  - name: say-hello
-    description: prints a greeting to the world
-    exec:
-      name: "echo"
-      args: ["Hello, World!"]
