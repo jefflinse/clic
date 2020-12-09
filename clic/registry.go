@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jefflinse/handyman/registry"
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic/registry"
+	"github.com/jefflinse/clic/spec"
 	"github.com/urfave/cli/v2"
 )
 
-func listRegistry(hmCtx *cli.Context) error {
-	if hmCtx.NArg() > 0 {
-		cli.ShowCommandHelpAndExit(hmCtx, "list-registry", 1)
+func listRegistry(clicCtx *cli.Context) error {
+	if clicCtx.NArg() > 0 {
+		cli.ShowCommandHelpAndExit(clicCtx, "list-registry", 1)
 	}
 
 	reg, err := registry.Load()
@@ -37,9 +37,9 @@ func listRegistry(hmCtx *cli.Context) error {
 	return nil
 }
 
-func register(hmCtx *cli.Context) error {
-	if hmCtx.NArg() != 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "register", 1)
+func register(clicCtx *cli.Context) error {
+	if clicCtx.NArg() != 1 {
+		cli.ShowCommandHelpAndExit(clicCtx, "register", 1)
 	}
 
 	reg, err := registry.Load()
@@ -47,7 +47,7 @@ func register(hmCtx *cli.Context) error {
 		return fmt.Errorf("error loading registry: %w", err)
 	}
 
-	path := hmCtx.Args().First()
+	path := clicCtx.Args().First()
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return fmt.Errorf("invalid file path: %w", err)
@@ -74,9 +74,9 @@ func register(hmCtx *cli.Context) error {
 	return nil
 }
 
-func pruneRegistry(hmCtx *cli.Context) error {
-	if hmCtx.NArg() > 0 {
-		cli.ShowCommandHelpAndExit(hmCtx, "prune-registry", 1)
+func pruneRegistry(clicCtx *cli.Context) error {
+	if clicCtx.NArg() > 0 {
+		cli.ShowCommandHelpAndExit(clicCtx, "prune-registry", 1)
 	}
 
 	reg, err := registry.Load()
@@ -93,9 +93,9 @@ func pruneRegistry(hmCtx *cli.Context) error {
 	return nil
 }
 
-func unregister(hmCtx *cli.Context) error {
-	if hmCtx.NArg() != 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "unregister", 1)
+func unregister(clicCtx *cli.Context) error {
+	if clicCtx.NArg() != 1 {
+		cli.ShowCommandHelpAndExit(clicCtx, "unregister", 1)
 	}
 
 	reg, err := registry.Load()
@@ -103,5 +103,5 @@ func unregister(hmCtx *cli.Context) error {
 		return fmt.Errorf("error loading registry: %w", err)
 	}
 
-	return reg.Remove(hmCtx.Args().First())
+	return reg.Remove(clicCtx.Args().First())
 }

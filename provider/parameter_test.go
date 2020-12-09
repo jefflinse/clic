@@ -3,7 +3,7 @@ package provider_test
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman/provider"
+	"github.com/jefflinse/clic/provider"
 	"github.com/stretchr/testify/assert"
 )
 

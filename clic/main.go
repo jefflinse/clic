@@ -5,10 +5,10 @@ import (
 	goioutil "io/ioutil"
 	"os"
 
-	"github.com/jefflinse/handyman"
-	"github.com/jefflinse/handyman/ioutil"
-	"github.com/jefflinse/handyman/registry"
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic"
+	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/registry"
+	"github.com/jefflinse/clic/spec"
 	"github.com/urfave/cli/v2"
 )
 
@@ -17,12 +17,12 @@ var Version string
 
 func main() {
 	app := &cli.App{
-		Name:                  "hm",
-		HelpName:              "hm",
-		Usage:                 "the handyman CLI",
+		Name:                  "clic",
+		HelpName:              "clic",
+		Usage:                 "the clic CLI",
 		Commands:              commands(),
 		HideHelp:              true,
-		CustomAppHelpTemplate: handyman.AppHelpTemplate(),
+		CustomAppHelpTemplate: clic.AppHelpTemplate(),
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -35,8 +35,8 @@ func commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:               "build",
-			Usage:              "bakes a handyman spec into a native Go binary",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			Usage:              "bakes a clic spec into a native Go binary",
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			ArgsUsage:          "specfile",
 			Flags:              []cli.Flag{},
 			Action:             build,
@@ -44,14 +44,14 @@ func commands() []*cli.Command {
 		{
 			Name:               "prune-registry",
 			Usage:              "removes registered apps whose spec files no longer exist",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			Flags:              []cli.Flag{},
 			Action:             pruneRegistry,
 		},
 		{
 			Name:               "register",
 			Usage:              "registers an app with the specified path",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			ArgsUsage:          "specfile",
 			Flags:              []cli.Flag{},
 			Action:             register,
@@ -59,14 +59,14 @@ func commands() []*cli.Command {
 		{
 			Name:               "list-registry",
 			Usage:              "lists registered apps",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			Flags:              []cli.Flag{},
 			Action:             listRegistry,
 		},
 		{
 			Name:               "run",
-			Usage:              "directly run a handyman spec",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			Usage:              "directly run a clic spec",
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			ArgsUsage:          "specfile",
 			Flags:              []cli.Flag{},
 			Action:             run,
@@ -74,42 +74,42 @@ func commands() []*cli.Command {
 		{
 			Name:               "unregister",
 			Usage:              "unregisters an app with the specified name",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			ArgsUsage:          "name",
 			Flags:              []cli.Flag{},
 			Action:             unregister,
 		},
 		{
 			Name:               "validate",
-			Usage:              "validate a handyman spec",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			Usage:              "validate a clic spec",
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			ArgsUsage:          "specfile",
 			Flags:              []cli.Flag{},
 			Action:             validate,
 		},
 		{
 			Name:               "version",
-			Usage:              "print the current handyman CLI version",
-			CustomHelpTemplate: handyman.CommandHelpTemplate(),
+			Usage:              "print the current clic CLI version",
+			CustomHelpTemplate: clic.CommandHelpTemplate(),
 			Flags:              []cli.Flag{},
 			Action: func(ctx *cli.Context) error {
-				fmt.Printf("handyman CLI version %s\n", Version)
+				fmt.Printf("clic CLI version %s\n", Version)
 				return nil
 			},
 		},
 	}
 }
 
-func run(hmCtx *cli.Context) error {
-	if hmCtx.NArg() < 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "run", 1)
+func run(clicCtx *cli.Context) error {
+	if clicCtx.NArg() < 1 {
+		cli.ShowCommandHelpAndExit(clicCtx, "run", 1)
 	}
 
-	specFile := hmCtx.Args().First()
+	specFile := clicCtx.Args().First()
 	var content []byte
 	if !ioutil.FileExists(specFile) {
 		// spec file not found, check the registry
-		appName := hmCtx.Args().First()
+		appName := clicCtx.Args().First()
 		reg, err := registry.Load()
 		if err != nil {
 			return fmt.Errorf("failed to load registry: %w", err)
@@ -127,14 +127,14 @@ func run(hmCtx *cli.Context) error {
 		return fmt.Errorf("failed to read spec file: %w", err)
 	}
 
-	app, err := handyman.NewApp(content)
+	app, err := clic.NewApp(content)
 	if err != nil {
 		return fmt.Errorf("failed to create app: %w", err)
 	}
 
 	// join the runner binary and spec filename into
 	// a single string to be used as arg[0] of the app
-	if err := app.Run(hmCtx.Args().Tail()); err != nil {
+	if err := app.Run(clicCtx.Args().Tail()); err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
 	}
@@ -142,12 +142,12 @@ func run(hmCtx *cli.Context) error {
 	return nil
 }
 
-func validate(hmCtx *cli.Context) error {
-	if hmCtx.NArg() != 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "validate", 1)
+func validate(clicCtx *cli.Context) error {
+	if clicCtx.NArg() != 1 {
+		cli.ShowCommandHelpAndExit(clicCtx, "validate", 1)
 	}
 
-	content, err := goioutil.ReadFile(hmCtx.Args().First())
+	content, err := goioutil.ReadFile(clicCtx.Args().First())
 	if err != nil {
 		return fmt.Errorf("failed to read spec file: %w", err)
 	}

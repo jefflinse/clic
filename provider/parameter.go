@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jefflinse/handyman/ioutil"
+	"github.com/jefflinse/clic/ioutil"
 	"github.com/urfave/cli/v2"
 )
 

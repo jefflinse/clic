@@ -3,9 +3,9 @@ package spec_test
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman/provider"
-	"github.com/jefflinse/handyman/provider/noop"
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic/provider"
+	"github.com/jefflinse/clic/provider/noop"
+	"github.com/jefflinse/clic/spec"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )

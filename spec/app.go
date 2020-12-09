@@ -7,7 +7,7 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-// An App specifies a complete Handyman application.
+// An App specifies a complete clic application.
 type App struct {
 	Name        string     `json:"name"        yaml:"name"`
 	Description string     `json:"description" yaml:"description"`

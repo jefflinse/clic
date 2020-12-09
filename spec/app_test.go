@@ -3,7 +3,7 @@ package spec_test
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic/spec"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,8 +1,8 @@
-# Handyman
+# clic
 
-![build status](https://img.shields.io/github/workflow/status/jefflinse/handyman/CI) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/handyman) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/handyman)
+![build status](https://img.shields.io/github/workflow/status/jefflinse/clic/CI) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/clic) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/clic)
 
-Handyman is a tools that allow you to quickly define, generate, and run custom CLI tools using simple text-based configuration files.
+clic is a tools that allow you to quickly define, generate, and run custom CLI tools using simple text-based configuration files.
 
 - [Overview](#overview)
 - [Installation](#installation)
@@ -20,10 +20,10 @@ Handyman is a tools that allow you to quickly define, generate, and run custom C
 
 ## Overview
 
-Handyman eliminates the need to maintain aliases, shell scripts, and custom CLI tools while developing and testing web services. Instead, quickly define a hierarchy of command line actions using a simple YAML or JSON spec file.
+clic eliminates the need to maintain aliases, shell scripts, and custom CLI tools while developing and testing web services. Instead, quickly define a hierarchy of command line actions using a simple YAML or JSON spec file.
 
 ```yaml
-# myapp.handyman.yml
+# myapp.clic.yml
 name: myapp
 description: tools for managing my service
 commands:
@@ -39,7 +39,7 @@ commands:
 ```
 
 ```bash
-$ hm run myapp.handyman.yml
+$ clic run myapp.clic.yml
 myapp - tools for managing my service
 
 usage:
@@ -50,33 +50,33 @@ commands:
 ```
 
 ```bash
-$ hm run myapp.handyman.yml list-items --category apparel
+$ clic run myapp.clic.yml list-items --category apparel
 {"args":{"category":"apparel"},"url":"https://postman-echo.com/get?category=apparel"}
 ```
 
 ## Installation
 
-The easiest way to install Handyman on macOS is via homebrew:
+The easiest way to install clic on macOS is via homebrew:
 
 ```bash
-$ brew install jefflinse/handyman/handyman
+$ brew install jefflinse/clic/clic
 ```
 
-Verify your installation by running the handyman CLI tool, `hm`:
+Verify your installation by running the clic CLI tool, `clic`:
 
 ```bash
-$ hm version
+$ clic version
 ```
 
 ## Quickstart
 
-Create a Handyman spec:
+Create a clic spec:
 
 **myapp.yml**:
 
 ```yaml
 name: myapp
-description: an example of a Handyman app
+description: an example of a clic app
 commands:
   - name: say-hello
     description: prints a greeting to the world
@@ -85,13 +85,13 @@ commands:
       args: ["Hello, World!"]
 ```
 
-The `hm run` command runs a Handyman spec as an app on-the-fly. Its only required argument is the path to a spec file; all remaining arguments are passed to the app.
+The `clic run` command runs a clic spec as an app on-the-fly. Its only required argument is the path to a spec file; all remaining arguments are passed to the app.
 
 Run the app spec without any additional arguments to view its usage:
 
 ```bash
-$ hm run myapp.yml
-myapp - an example of a Handyman app
+$ clic run myapp.yml
+myapp - an example of a clic app
 
 usage:
   myapp  command [command options] [arguments...]
@@ -103,14 +103,14 @@ commands:
 Now run our app spec with the `say-hello` command:
 
 ```bash
-$ hm run myapp.yml say-hello
+$ clic run myapp.yml say-hello
 Hello, World!
 ```
 
-The `hm build` command compiles a Handyman app spec into a native Go binary. Let's compile our app:
+The `clic build` command compiles a clic app spec into a native Go binary. Let's compile our app:
 
 ```bash
-$ hm build myapp.yml
+$ clic build myapp.yml
 
 $ ls
 myapp     myapp.yml
@@ -120,7 +120,7 @@ Now we can run it directly:
 
 ```bash
 $ ./myapp
-myapp - an example of a Handyman app
+myapp - an example of a clic app
 
 usage:
   myapp  command [command options] [arguments...]
@@ -134,11 +134,11 @@ $ ./myapp say-hello
 Hello, World!
 ```
 
-Handyman can do more than just execute local commands. See the complete list of [Command Providers](#command-providers) to learn more.
+clic can do more than just execute local commands. See the complete list of [Command Providers](#command-providers) to learn more.
 
 ## Specification Format
 
-A Handyman spec can be written in either YAML or JSON. The root object describes the application, which contains one or more commands, each of which can contain any number of nested subcommands.
+A clic spec can be written in either YAML or JSON. The root object describes the application, which contains one or more commands, each of which can contain any number of nested subcommands.
 
 ### App
 

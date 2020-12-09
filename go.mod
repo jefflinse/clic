@@ -1,4 +1,4 @@
-module github.com/jefflinse/handyman
+module github.com/jefflinse/clic
 
 go 1.15
 

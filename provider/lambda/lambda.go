@@ -9,8 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/jefflinse/handyman/ioutil"
-	"github.com/jefflinse/handyman/provider"
+	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/provider"
 	"github.com/urfave/cli/v2"
 )
 

@@ -1,7 +1,7 @@
-package handyman
+package clic
 
 import (
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic/spec"
 	"github.com/urfave/cli/v2"
 )
 
@@ -11,7 +11,7 @@ type App struct {
 	spec   *spec.App
 }
 
-// NewApp creates a new Handyman app from the provided JSON specification.
+// NewApp creates a new clic app from the provided JSON specification.
 func NewApp(specification []byte) (*App, error) {
 	appSpec, err := spec.NewAppSpec(specification)
 	if err != nil {
@@ -25,13 +25,13 @@ func NewApp(specification []byte) (*App, error) {
 	return newAppFromSpec(appSpec)
 }
 
-// Run runs the Handyman app.
+// Run runs the clic app.
 func (app App) Run(args []string) error {
 	arguments := append([]string{app.spec.Name}, args...)
 	return app.cliApp.Run(arguments)
 }
 
-// NewApp creates a new Handyman app from the provided specification
+// NewApp creates a new clic app from the provided specification
 func newAppFromSpec(appSpec *spec.App) (*App, error) {
 	cliApp := &cli.App{
 		Name:                  appSpec.Name,

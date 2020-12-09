@@ -1,5 +1,5 @@
 name: my-rest-app
-description: an example of a Handyman app with REST commands
+description: an example of a clic app with REST commands
 commands:
   - name: get
     description: send a GET request to a test endpoint

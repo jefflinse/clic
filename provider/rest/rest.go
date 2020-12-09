@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jefflinse/handyman/ioutil"
-	"github.com/jefflinse/handyman/provider"
+	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/provider"
 	"github.com/urfave/cli/v2"
 )
 

@@ -7,10 +7,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/jefflinse/handyman/ioutil"
+	"github.com/jefflinse/clic/ioutil"
 )
 
-const registryFileName = ".handyman_registry"
+const registryFileName = ".clic_registry"
 
 // A Registry is a map of app names to spec file paths.
 type Registry map[string]string

@@ -1,5 +1,5 @@
 name: my-lambda-app
-description: an example of a Handyman app with lambda commands
+description: an example of a clic app with lambda commands
 commands:
   - name: my-func
     description: invokes 'my-func'

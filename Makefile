@@ -14,8 +14,8 @@ bin_dir          = $(bin_root)/$(PLAT)/$(ARCH)
 dist_dir         = $(repo_root)/dist
 
 # build and package outputs
-hm_bin     = $(bin_dir)/hm
-hm_tarball = $(dist_dir)/handyman-$(VERSION)-$(PLAT)-$(ARCH).tar.gz
+clic_bin     = $(bin_dir)/clic
+clic_tarball = $(dist_dir)/clic-$(VERSION)-$(PLAT)-$(ARCH).tar.gz
 
 # files
 source_files     = *.go */*.go */*/*.go
@@ -39,9 +39,9 @@ clean:
 	rm -rf $(dist_dir)
 	rm -f $(coverage_profile) $(coverage_report)
 
-build: $(hm_bin)
+build: $(clic_bin)
 
-package: $(hm_tarball)
+package: $(clic_tarball)
 
 test: $(coverage_profile)
 
@@ -51,18 +51,18 @@ coverage: $(coverage_repkort)
 coverage-html: $(coverage_profile)
 	go tool cover -html=$(coverage_profile)
 
-$(hm_bin): $(source_files)
+$(clic_bin): $(source_files)
 	mkdir -p $(bin_dir)
-	cd hm && \
+	cd clic && \
 	GOOS=$(PLAT) GOARCH=$(ARCH) \
 	go build \
 	-ldflags "-X 'main.Version=$(VERSION)'" \
 	-trimpath \
-	-o $(hm_bin)$(binary_ext)
+	-o $(clic_bin)$(binary_ext)
 
-$(hm_tarball): $(hm_bin)
+$(clic_tarball): $(clic_bin)
 	mkdir -p $(dist_dir)
-	tar -czf $(hm_tarball) -C $(bin_dir) .
+	tar -czf $(clic_tarball) -C $(bin_dir) .
 
 $(coverage_report): $(coverage_profile)
 	go tool cover -func=$(coverage_profile) > $(coverage_report)

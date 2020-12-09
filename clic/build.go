@@ -1,4 +1,4 @@
-// The compiler isn't a true compiler; it just takes a Handyman spec, generates a Go
+// The compiler isn't a true compiler; it just takes a clic spec, generates a Go
 // source file with the spec contents statically defined, and compiles it into a Go binary.
 package main
 
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/jefflinse/handyman/ioutil"
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/spec"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,12 +23,12 @@ const (
 
 var codePath string
 
-func build(hmCtx *cli.Context) error {
-	if hmCtx.NArg() != 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "build", 1)
+func build(clicCtx *cli.Context) error {
+	if clicCtx.NArg() != 1 {
+		cli.ShowCommandHelpAndExit(clicCtx, "build", 1)
 	}
 
-	specFilePath := hmCtx.Args().First()
+	specFilePath := clicCtx.Args().First()
 	if !ioutil.FileExists(specFilePath) {
 		return fmt.Errorf("file not found")
 	}
@@ -57,7 +57,7 @@ func build(hmCtx *cli.Context) error {
 func generateAppBinary(name string, specData []byte) error {
 	var err error
 
-	codePath, err = goioutil.TempDir("", fmt.Sprint("handyman-", name, "-"))
+	codePath, err = goioutil.TempDir("", fmt.Sprint("clic-", name, "-"))
 	if err != nil {
 		return err
 	}
