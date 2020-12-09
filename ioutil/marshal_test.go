@@ -11,39 +11,6 @@ type foo struct {
 	Foo string `json:"foo" yaml:"foo"`
 }
 
-func TestIntermarshal(t *testing.T) {
-	tests := []struct {
-		name          string
-		source        interface{}
-		target        interface{}
-		expectSuccess bool
-	}{
-		{
-			name:          "returns nil when successfully marshalling and unmarshalling",
-			source:        map[string]interface{}{"foo": "value"},
-			target:        foo{},
-			expectSuccess: true,
-		},
-		{
-			name:          "returns error when failing to marshal source",
-			source:        make(chan int),
-			target:        foo{},
-			expectSuccess: false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			err := ioutil.Intermarshal(test.source, test.target)
-			if test.expectSuccess {
-				assert.NoError(t, err)
-			} else {
-				assert.Error(t, err)
-			}
-		})
-	}
-}
-
 func TestUnmarshal(t *testing.T) {
 	tests := []struct {
 		name          string

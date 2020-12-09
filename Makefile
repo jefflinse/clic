@@ -8,13 +8,13 @@ binary_ext = .exe
 endif
 
 # locations
-repo_root       := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-bin_root         = $(repo_root)/bin
-bin_dir          = $(bin_root)/$(PLAT)/$(ARCH)
-dist_dir         = $(repo_root)/dist
+repo_root := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+bin_root   = $(repo_root)/bin
+bin_dir    = $(bin_root)/$(PLAT)/$(ARCH)
+dist_dir   = $(repo_root)/dist
 
 # build and package outputs
-clic_bin     = $(bin_dir)/clic
+clic_bin     = $(bin_dir)/clic$(binary_ext)
 clic_tarball = $(dist_dir)/clic-$(VERSION)-$(PLAT)-$(ARCH).tar.gz
 
 # files
@@ -24,8 +24,8 @@ coverage_report  = coverage.report.out
 
 # versioning
 ifndef VERSION
-git_rev   := $(shell git rev-parse --short HEAD)
-git_tag   := $(shell git describe --tags --match "v*.*.*" --abbrev=0 HEAD 2>/dev/null)
+git_rev := $(shell git rev-parse --short HEAD)
+git_tag := $(shell git describe --tags --match "v*.*.*" --abbrev=0 HEAD 2>/dev/null)
 ifeq ($(git_tag),)
 git_tag := v0.0.0
 endif
@@ -58,7 +58,7 @@ $(clic_bin): $(source_files)
 	go build \
 	-ldflags "-X 'main.Version=$(VERSION)'" \
 	-trimpath \
-	-o $(clic_bin)$(binary_ext)
+	-o $(clic_bin)
 
 $(clic_tarball): $(clic_bin)
 	mkdir -p $(dist_dir)

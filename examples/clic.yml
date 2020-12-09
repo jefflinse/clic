@@ -1,0 +1,35 @@
+name: sample
+description: a sample clic spec demonstrating v1 functionality goals
+
+variables:
+  foo: some value
+  bar: 42
+  baz: false
+  pi: 3.14
+
+commands:
+  - name: do-something
+    description: "does a thing"
+    exec:
+      path: "curl"
+      args: ["-fsSL", "google.com/?q={{vars.pi}}"]
+
+  - name: collection
+    description: manage your collection
+    variables:
+      myvar: 12345
+      pi: 3.14159
+    subcommands:
+      - name: add
+        description: "adds a thing to the collection"
+        exec:
+          path: echo
+          args: ["-e", "{{vars.foo}}: {{env.TOKEN}} {{vars.myvar}} {{params.thing}}"]
+          params:
+            - name: amount
+              type: number
+              required: true    # args
+            - name: thing
+              type: string
+              required: false   # flags
+              default: "{{vars.foo}}"
