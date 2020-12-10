@@ -1,10 +1,37 @@
-# clic
+# clic - a ccommand line interface composer
 
 ![build status](https://img.shields.io/github/workflow/status/jefflinse/clic/CI) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/clic) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/clic)
 
-clic is a tools that allow you to quickly define, generate, and run custom CLI tools using simple text-based configuration files.
+clic is a tool for running CLI applications defined as YAML (or JSON) files. Apps can be run directly or built into binaries or scripts for a variety of platforms.
 
-- [Overview](#overview)
+```yaml
+# mytool.yml
+name: mytool
+description: an example CLI tool
+commands:
+  - name: greet
+    description: greets the world
+    exec:
+      path: echo
+      args: ["-e", "hello, world!"]
+```
+
+```bash
+$ clic mytool.yml
+myapp - an example CLI tool
+
+usage:
+  mytool  command [command options] [arguments...]
+
+commands:
+  greet  greets the world
+```
+
+```bash
+$ clic mytool.yml greet
+hello, world!
+```
+
 - [Installation](#installation)
 - [Quickstart](#quickstart)
 - [Specification Format](#specification-format)
@@ -17,42 +44,6 @@ clic is a tools that allow you to quickly define, generate, and run custom CLI t
   - [noop - do nothing](#noop)
   - [rest - make a request to a REST endpoint](#rest)
 - [Roadmap](#roadmap)
-
-## Overview
-
-clic eliminates the need to maintain aliases, shell scripts, and custom CLI tools while developing and testing web services. Instead, quickly define a hierarchy of command line actions using a simple YAML or JSON spec file.
-
-```yaml
-# myapp.clic.yml
-name: myapp
-description: tools for managing my service
-commands:
-  - name: list-items
-    description: list items in the catalog
-    rest:
-      method: GET
-      endpoint: https://postman-echo.com/get
-      query_params:
-        - name: category
-          type: string
-          description: limit to items in category
-```
-
-```bash
-$ clic run myapp.clic.yml
-myapp - tools for managing my service
-
-usage:
-  myapp  command [command options] [arguments...]
-
-commands:
-  list-items  list all items in the catalog
-```
-
-```bash
-$ clic run myapp.clic.yml list-items --category apparel
-{"args":{"category":"apparel"},"url":"https://postman-echo.com/get?category=apparel"}
-```
 
 ## Installation
 
