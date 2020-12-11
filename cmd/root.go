@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,12 +13,7 @@ import (
 	"github.com/jefflinse/clic/spec"
 	"github.com/jefflinse/clic/writer"
 	"github.com/spf13/cobra"
-
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
 )
-
-var cfgFile string
 
 var rootCmd *cobra.Command
 
@@ -40,71 +34,15 @@ func init() {
 Create CLI applications from YAML or JSON specifications.`,
 	}
 
-	cobra.OnInitialize(initConfig)
-
-	// global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.clic.yaml)")
-
 	// top-level commands
 	buildCmd := &cobra.Command{
 		Use:   "build",
 		Short: "build an app from an app spec",
 		Long:  `build an app from an app spec`,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return errors.New("requires a spec file")
-			}
-
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := loadAppSpec(args[0])
-			if err != nil {
-				return err
-			}
-
-			srcDir, err := ioutil.TempDir("", "clic.build.*")
-			if err != nil {
-				return nil
-			}
-			defer func() {
-				log.Println("cleaning up", srcDir)
-				os.RemoveAll(srcDir)
-			}()
-
-			generated, err := writer.NewGo(app).WriteFiles(srcDir)
-			if err != nil {
-				return err
-			}
-
-			outputFile := cmd.Flag("output-file").Value.String()
-			if outputFile == "" {
-				outputFile = app.Name
-			}
-
-			if !filepath.IsAbs(outputFile) {
-				cwd, err := os.Getwd()
-				if err != nil {
-					return nil
-				}
-
-				outputFile = path.Join(cwd, outputFile)
-			}
-
-			b := builder.NewGo(app, generated)
-			built, err := b.Build(outputFile)
-			if err != nil {
-				return err
-			}
-
-			log.Println("built", built.Type, "app to", built.Path)
-
-			return nil
-		},
+		Args:  cobra.MinimumNArgs(1),
+		RunE:  build,
 	}
-
 	buildCmd.Flags().StringP("output-file", "o", "", "app output file location")
-
 	rootCmd.AddCommand(buildCmd)
 
 	generateCmd := &cobra.Command{
@@ -112,65 +50,84 @@ Create CLI applications from YAML or JSON specifications.`,
 		Short: "generate source files from an app spec",
 		Long:  `generate source files from an app spec`,
 		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := loadAppSpec(args[0])
-			if err != nil {
-				return err
-			}
-
-			outputDir := cmd.Flag("output-dir").Value.String()
-			if !filepath.IsAbs(outputDir) {
-				cwd, err := os.Getwd()
-				if err != nil {
-					return nil
-				}
-
-				outputDir = path.Join(cwd, outputDir)
-			}
-
-			if err := io.CreateDirectory(outputDir, false); err != nil {
-				return err
-			}
-
-			generated, err := writer.NewGo(app).WriteFiles(outputDir)
-			if err != nil {
-				return err
-			}
-
-			log.Println("generated", len(generated.FileNames), "files into", generated.Dir)
-			return nil
-		},
+		RunE:  generate,
 	}
-
 	generateCmd.Flags().StringP("output-dir", "o", "./out", "location to write output files")
-
 	rootCmd.AddCommand(generateCmd)
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
+func build(cmd *cobra.Command, args []string) error {
+	app, err := loadAppSpec(args[0])
+	if err != nil {
+		return err
+	}
+
+	srcDir, err := ioutil.TempDir("", "clic.build.*")
+	if err != nil {
+		return nil
+	}
+	defer func() {
+		log.Println("cleaning up", srcDir)
+		os.RemoveAll(srcDir)
+	}()
+
+	generated, err := writer.NewGo(app).WriteFiles(srcDir)
+	if err != nil {
+		return err
+	}
+
+	outputFile := cmd.Flag("output-file").Value.String()
+	if outputFile == "" {
+		outputFile = app.Name
+	}
+
+	if !filepath.IsAbs(outputFile) {
+		cwd, err := os.Getwd()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return nil
 		}
 
-		// Search config in home directory with name ".clic" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".clic")
+		outputFile = path.Join(cwd, outputFile)
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		log.Println("using config file:", viper.ConfigFileUsed())
+	b := builder.NewGo(app, generated)
+	built, err := b.Build(outputFile)
+	if err != nil {
+		return err
 	}
+
+	log.Println("built", built.Type, "app to", built.Path)
+
+	return nil
+}
+
+func generate(cmd *cobra.Command, args []string) error {
+	app, err := loadAppSpec(args[0])
+	if err != nil {
+		return err
+	}
+
+	outputDir := cmd.Flag("output-dir").Value.String()
+	if !filepath.IsAbs(outputDir) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil
+		}
+
+		outputDir = path.Join(cwd, outputDir)
+	}
+
+	if err := io.CreateDirectory(outputDir, false); err != nil {
+		return err
+	}
+
+	generated, err := writer.NewGo(app).WriteFiles(outputDir)
+	if err != nil {
+		return err
+	}
+
+	log.Println("generated", len(generated.FileNames), "files into", generated.Dir)
+	return nil
 }
 
 func loadAppSpec(file string) (*spec.App, error) {
