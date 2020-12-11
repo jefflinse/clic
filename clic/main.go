@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-
+	"github.com/jefflinse/clic/appwriter"
 	"github.com/jefflinse/clic/spec"
 )
 
@@ -13,10 +12,26 @@ func main() {
 	content := []byte(
 		`name: sample
 commands:
-  - name: mycommand
+  - name: greet
+    description: prints a greeting message
     exec:
       path: echo
-      args: ["-e", "hello world"]
+      args: ["-e", "hello {{params.name}}!"]
+      params:
+        - name: name
+          type: string
+          required: true
+  - name: greet
+    description: prints a greeting message
+    exec:
+      path: chastize
+      args: ["-e", "{{params.explative}}, {{params.name}}!"]
+      params:
+        - name: name
+          type: string
+          required: true
+        - name: explative
+          default: fuck you
 `)
 
 	app, err := spec.NewApp(content)
@@ -28,7 +43,10 @@ commands:
 		panic(err)
 	}
 
-	fmt.Print(app.TraceString())
+	prod := appwriter.NewGo(app)
+	if err := prod.Generate(); err != nil {
+		panic(err)
+	}
 
 	return
 }

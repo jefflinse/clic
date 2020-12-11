@@ -7,8 +7,9 @@ import (
 
 // Exec is a provider for running any arbitrary local command.
 type Exec struct {
-	Path string   `json:"path"`
-	Args []string `json:"args"`
+	Path   string       `json:"path"`
+	Args   []string     `json:"args,omitempty"`
+	Params ParameterSet `json:"parameters,omitempty"`
 }
 
 // TraceString prints the provider hierarchy.
@@ -20,6 +21,12 @@ func (e Exec) TraceString() string {
 func (e Exec) Validate() error {
 	if e.Path == "" {
 		return fmt.Errorf("invalid exec provider: missing name")
+	}
+
+	for _, p := range e.Params {
+		if err := p.Validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil

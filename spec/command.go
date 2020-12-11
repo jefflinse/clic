@@ -6,7 +6,8 @@ import (
 
 // A Command is a command that can be executed on the command line with args and/or flags.
 type Command struct {
-	Name string `json:"name"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
 
 	// providers
 	Exec *Exec `json:"exec,omitempty"`

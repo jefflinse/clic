@@ -13,6 +13,10 @@ commands:
     exec:
       path: "curl"
       args: ["-fsSL", "google.com/?q={{vars.pi}}"]
+      params:
+        - name: name
+          type: string
+          required: true
 
   - name: collection
     description: manage your collection
@@ -33,3 +37,9 @@ commands:
               type: string
               required: false   # flags
               default: "{{vars.foo}}"
+
+writer_config:
+  go:
+    provider: cobra
+  python:
+    provider: click
