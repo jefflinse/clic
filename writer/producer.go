@@ -1,4 +1,4 @@
-package appwriter
+package writer
 
 import "io/ioutil"
 

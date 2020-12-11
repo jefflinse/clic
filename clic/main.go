@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/jefflinse/clic/appwriter"
 	"github.com/jefflinse/clic/spec"
+	"github.com/jefflinse/clic/writer"
 )
 
 // Version is stamped by the build process.
@@ -43,7 +43,7 @@ commands:
 		panic(err)
 	}
 
-	prod := appwriter.NewGo(app)
+	prod := writer.NewGo(app)
 	if err := prod.Generate(); err != nil {
 		panic(err)
 	}
