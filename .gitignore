@@ -17,6 +17,5 @@
 # VSCode
 .vscode/
 
-# bin and dist dirs
-bin/
-dist/
+# clic binary
+clic

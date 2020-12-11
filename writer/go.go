@@ -28,7 +28,7 @@ func (g Go) WriteFiles(targetDir string) (*Output, error) {
 		return nil, err
 	}
 
-	appTemplateFile := path.Join(filepath.Dir(exe), "..", "writer", "templates", "go.t")
+	appTemplateFile := path.Join(filepath.Dir(exe), "writer", "templates", "go.t")
 	log.Println("loading Go app template from", appTemplateFile)
 	appTemplate, err := template.New(path.Base(appTemplateFile)).ParseFiles(appTemplateFile)
 	if err != nil {
