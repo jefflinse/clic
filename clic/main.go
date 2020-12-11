@@ -21,10 +21,10 @@ commands:
         - name: name
           type: string
           required: true
-  - name: greet
-    description: prints a greeting message
+  - name: chastize
+    description: insults someone
     exec:
-      path: chastize
+      path: echo
       args: ["-e", "{{params.explative}}, {{params.name}}!"]
       params:
         - name: name
