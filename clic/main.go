@@ -1,6 +1,10 @@
 package main
 
 import (
+	"io/ioutil"
+	"log"
+
+	"github.com/jefflinse/clic/builder"
 	"github.com/jefflinse/clic/spec"
 	"github.com/jefflinse/clic/writer"
 )
@@ -39,13 +43,27 @@ commands:
 		panic(err)
 	}
 
+	log.Println("validating app spec")
 	if err := app.Validate(); err != nil {
 		panic(err)
 	}
 
-	prod := writer.NewGo(app)
-	if err := prod.Generate(); err != nil {
+	w := writer.NewGo(app)
+	srcDir, _ := ioutil.TempDir("", "")
+	written, err := w.WriteFiles(srcDir)
+	if err != nil {
 		panic(err)
+	} else {
+		log.Println("source files written to", written.Dir)
+	}
+
+	b := builder.NewGo(app, written)
+	bin, _ := ioutil.TempFile("", app.Name)
+	built, err := b.Build(bin)
+	if err != nil {
+		panic(err)
+	} else {
+		log.Println(built.Type, "app built as", built.Path)
 	}
 
 	return
