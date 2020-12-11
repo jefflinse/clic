@@ -1,11 +1,12 @@
 package builder
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/jefflinse/clic/spec"
 	"github.com/jefflinse/clic/writer"
@@ -44,15 +45,30 @@ func (g Go) Build(outputFile string) (*Output, error) {
 }
 
 func (g Go) runBashCmd(cmd string) error {
-	stderr := strings.Builder{}
 	bashCmd := fmt.Sprintf("cd %s && %s", g.sources.Dir, cmd)
 	command := exec.Command("/bin/bash", "-c", bashCmd)
 	command.Env = os.Environ()
-	command.Stdout = os.Stdout
-	command.Stderr = os.Stderr
+
+	stderr, err := command.StderrPipe()
+	if err != nil {
+		log.Fatalf("could not get stderr pipe: %v", err)
+	}
+
+	stdout, err := command.StdoutPipe()
+	if err != nil {
+		log.Fatalf("could not get stdout pipe: %v", err)
+	}
+
+	go func() {
+		merged := io.MultiReader(stderr, stdout)
+		scanner := bufio.NewScanner(merged)
+		for scanner.Scan() {
+			log.Printf(scanner.Text())
+		}
+	}()
 
 	if err := command.Run(); err != nil {
-		fmt.Fprint(os.Stderr, stderr.String())
+		return err
 	}
 
 	return nil

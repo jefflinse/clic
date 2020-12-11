@@ -44,7 +44,6 @@ func (g Go) WriteFiles(targetDir string) (*Output, error) {
 		return nil, err
 	}
 
-	log.Println("executing template replacements")
 	if err := appTemplate.Execute(f, &g.spec); err != nil {
 		return nil, err
 	}

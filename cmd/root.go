@@ -174,13 +174,12 @@ func initConfig() {
 }
 
 func loadAppSpec(file string) (*spec.App, error) {
-	log.Println("loading app spec")
+	log.Println("loading app spec from", file)
 	app, err := spec.NewAppFromFile(file)
 	if err != nil {
 		panic(err)
 	}
 
-	log.Println("validating app spec")
 	if err := app.Validate(); err != nil {
 		panic(err)
 	}
