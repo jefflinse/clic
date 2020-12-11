@@ -24,7 +24,7 @@ func NewGo(spec *spec.App, sources *writer.Output) *Go {
 }
 
 // Build compiles the files in the source directory into a binary.
-func (g Go) Build(outputFile *os.File) (*Output, error) {
+func (g Go) Build(outputFile string) (*Output, error) {
 	// go mod init
 	if err := g.runBashCmd(fmt.Sprintf(`go mod init %s`, g.spec.Name)); err != nil {
 		return nil, err
@@ -36,11 +36,11 @@ func (g Go) Build(outputFile *os.File) (*Output, error) {
 	}
 
 	// go build
-	if err := g.runBashCmd(fmt.Sprintf(`go build -o %s`, outputFile.Name())); err != nil {
+	if err := g.runBashCmd(fmt.Sprintf(`go build -o %s`, outputFile)); err != nil {
 		return nil, err
 	}
 
-	return &Output{Type: "go", Path: outputFile.Name()}, nil
+	return &Output{Type: "go", Path: outputFile}, nil
 }
 
 func (g Go) runBashCmd(cmd string) error {
