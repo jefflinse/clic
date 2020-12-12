@@ -54,6 +54,15 @@ Create CLI applications from YAML or JSON specifications.`,
 	}
 	generateCmd.Flags().StringP("output-dir", "o", "./out", "location to write output files")
 	rootCmd.AddCommand(generateCmd)
+
+	validateCmd := &cobra.Command{
+		Use:   "validate",
+		Short: "validate an app spec",
+		Long:  `validate an app spec`,
+		Args:  cobra.MinimumNArgs(1),
+		RunE:  validate,
+	}
+	rootCmd.AddCommand(validateCmd)
 }
 
 func build(cmd *cobra.Command, args []string) error {
@@ -128,6 +137,15 @@ func generate(cmd *cobra.Command, args []string) error {
 
 	log.Println("generated", len(generated.FileNames), "files into", generated.Dir)
 	return nil
+}
+
+func validate(cmd *cobra.Command, args []string) error {
+	app, err := loadAppSpec(args[0])
+	if err != nil {
+		return err
+	}
+
+	return app.Validate()
 }
 
 func loadAppSpec(file string) (*spec.App, error) {

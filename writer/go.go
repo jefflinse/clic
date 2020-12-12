@@ -10,12 +10,12 @@ import (
 	"github.com/jefflinse/clic/spec"
 )
 
-// Go is the Golang producer.
+// Go is the Golang writer.
 type Go struct {
 	spec *spec.App
 }
 
-// NewGo creates a new Go producer.
+// NewGo creates a new Go writer.
 func NewGo(app *spec.App) *Go {
 	log.Println("creating Go writer")
 	return &Go{spec: app}
