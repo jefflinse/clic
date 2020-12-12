@@ -1,19 +1,8 @@
-name: my-exec-app
-description: an example of a clic app with exec commands
+name: sample-app-with-exec
+description: a sample app demonstrating the exec command provider
 commands:
-  - name: say
-    description: prints a message
+  - name: greet
+    description: prints a greeting
     exec:
-      name: echo
-      args: ["{{params.use_dash_e}}", "{{params.message}}"]
-      params:
-        - name: message
-          type: string
-          description: the primary message
-          required: true
-        - name: use_dash_e
-          type: bool
-          description: whether or not to use -e
-          required: false
-          as_flag: -e
-      echo: true
+      path: echo
+      args: ["-e", "hello, world!"]

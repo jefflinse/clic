@@ -7,8 +7,9 @@ commands:
       args: ["-e", "hello {{params.name}}!"]
       params:
         - name: name
+          as: arg
           type: string
-          required: true
+          required: true # defaults to arg
   - name: chastize
     description: insults someone
     exec:
@@ -20,3 +21,4 @@ commands:
           required: true
         - name: explative
           default: fuck you
+          required: false # defaults to flag

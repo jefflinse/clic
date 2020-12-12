@@ -1,6 +1,0 @@
-name: my-noop-app
-description: an example of a clic app with a noop command
-commands:
-  - name: do-nothing
-    description: does absolutely nothing
-    noop:
