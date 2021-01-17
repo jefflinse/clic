@@ -53,7 +53,6 @@ coverage-html: $(coverage_profile)
 
 $(clic_bin): $(source_files)
 	mkdir -p $(bin_dir)
-	cd clic && \
 	GOOS=$(PLAT) GOARCH=$(ARCH) \
 	go build \
 	-ldflags "-X 'main.Version=$(VERSION)'" \
