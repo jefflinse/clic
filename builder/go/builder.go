@@ -25,6 +25,7 @@ func New(sources *writer.Output) *Go {
 
 // Build compiles the Go file(s) in the source directory into a binary.
 func (g Go) Build(outputFile string) (*builder.Output, error) {
+	log.Println("building Go source files")
 	// go mod init
 	if err := g.runBashCmd(fmt.Sprintf(`go mod init %s`, g.sources.Spec.Name)); err != nil {
 		return nil, err

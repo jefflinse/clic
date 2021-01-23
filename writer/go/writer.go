@@ -105,10 +105,9 @@ func (g Go) WriteFiles(targetDir string) (*writer.Output, error) {
 		return nil, err
 	}
 
-	log.Println("generating Go source files")
+	log.Println("writing Go source files")
 	sourceFile := "app.go"
 	sourceFilePath := path.Join(targetDir, sourceFile)
-	log.Println("+", sourceFile)
 	f, err := os.Create(sourceFilePath)
 	if err != nil {
 		return nil, err

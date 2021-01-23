@@ -42,6 +42,7 @@ Create CLI applications from YAML or JSON specifications.`,
 		RunE:  build,
 	}
 	buildCmd.Flags().StringP("output-file", "o", "", "app output file location")
+	buildCmd.Flags().BoolP("keep-src", "k", false, "preserve intermediate source files")
 	rootCmd.AddCommand(buildCmd)
 
 	generateCmd := &cobra.Command{
@@ -75,8 +76,12 @@ func build(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	defer func() {
-		log.Println("cleaning up", srcDir)
-		os.RemoveAll(srcDir)
+		if keep, _ := cmd.Flags().GetBool("keep-src"); keep {
+			log.Println("preserving sources at", srcDir)
+		} else {
+			log.Println("cleaning up", srcDir)
+			os.RemoveAll(srcDir)
+		}
 	}()
 
 	sources, err := gowriter.New(app).WriteFiles(srcDir)
