@@ -2,7 +2,6 @@ package spec
 
 import (
 	"fmt"
-	"strings"
 )
 
 // Exec is a provider for running any arbitrary local command.
@@ -15,11 +14,6 @@ type Exec struct {
 // Name returns the name of the provider.
 func (e Exec) Name() string {
 	return "exec"
-}
-
-// TraceString prints the provider hierarchy.
-func (e Exec) TraceString() string {
-	return fmt.Sprintf("(exec): %s %s", e.Path, strings.Join(e.Args, " "))
 }
 
 // Validate returns an error if the provider is invalid.

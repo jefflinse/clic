@@ -4,7 +4,7 @@ commands:
     description: prints a greeting message
     exec:
       path: echo
-      args: ["-e", "hello {{params.name}}!"]
+      args: ["-e", "hello {params.name}!"]
       params:
         - name: name
           as: arg
@@ -14,7 +14,7 @@ commands:
     description: insults someone
     exec:
       path: echo
-      args: ["-e", "{{params.explative}}, {{params.name}}!"]
+      args: ["-e", "{params.explative}, {params.name}!"]
       params:
         - name: name
           description: name of person to yell at

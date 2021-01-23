@@ -3,7 +3,6 @@ package spec
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/jefflinse/clic/io"
 )
@@ -28,19 +27,6 @@ func NewAppFromFile(path string) (App, error) {
 func NewApp(data []byte) (App, error) {
 	app := App{}
 	return app, io.Unmarshal(data, &app)
-}
-
-// TraceString prints the app hierarchy.
-func (a App) TraceString() string {
-	b := strings.Builder{}
-
-	b.WriteString(a.Name + "\n")
-	for _, command := range a.Commands {
-		b.WriteString("  ")
-		b.WriteString(command.TraceString())
-	}
-
-	return b.String()
 }
 
 // Validate returns an error if the app spec is invalid.

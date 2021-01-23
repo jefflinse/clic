@@ -13,16 +13,6 @@ type Command struct {
 	Exec Exec `json:"exec,omitempty"`
 }
 
-// Provider returns the command's provider.
-func (c Command) Provider() Provider {
-	return c.Exec
-}
-
-// TraceString prints the command hierarchy.
-func (c Command) TraceString() string {
-	return fmt.Sprintf("%s %s", c.Name, c.Provider().TraceString())
-}
-
 // Validate returns an error if the command is invalid.
 func (c Command) Validate() (Command, error) {
 	if c.Name == "" {

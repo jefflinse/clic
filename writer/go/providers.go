@@ -3,9 +3,17 @@ package gowriter
 import (
 	"os"
 	"os/exec"
+
+	"github.com/spf13/cobra"
 )
 
-func doExec(path string, args ...string) {
+func applyParameters(target string, cmd *cobra.Command, argValues []string) string {
+	parameterized := target
+
+	return parameterized
+}
+
+func doexec(path string, args []string) {
 	command := exec.Command(path, args...)
 	command.Env = os.Environ()
 	command.Stdin = os.Stdin

@@ -23,10 +23,10 @@ type app struct {
 }
 
 type command struct {
-	Name     string
-	Args     []arg
-	Flags    []flag
-	Provider string
+	Name  string
+	Args  []arg
+	Flags []flag
+	Exec  *spec.Exec
 }
 
 func (c command) NArgs() int {
@@ -59,10 +59,10 @@ func (g Go) content() app {
 
 	for _, cmd := range g.spec.Commands {
 		c := command{
-			Name:     cmd.Name,
-			Args:     []arg{},
-			Flags:    []flag{},
-			Provider: cmd.Provider().Name(),
+			Name:  cmd.Name,
+			Args:  []arg{},
+			Flags: []flag{},
+			Exec:  &cmd.Exec,
 		}
 
 		for _, param := range cmd.Exec.Parameters {
