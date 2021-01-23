@@ -1,0 +1,42 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+)
+
+func main() {
+	rootCmd := &cobra.Command{
+		Use: "{{.Name}}",
+	}
+
+	{{range .Commands -}}
+	{{$cmdName := .Name}}
+	{{- $cmdName}}_cmd := &cobra.Command{
+		Use:   "{{.Name}}",
+		Short: "{{.Name}}",
+		Args:  cobra.MinimumNArgs({{.NArgs}}),
+		Run: func(cmd *cobra.Command, args []string) {
+			provider_{{.Provider}}()
+		},
+	}
+
+	{{- range .Flags}}
+	{{$cmdName}}_cmd.Flags().{{.Type}}("{{.Name}}", "TODO: pipe through default", "TODO: pipe through description")
+	{{end}}
+	
+	rootCmd.AddCommand({{$cmdName}}_cmd)
+
+	{{end -}}
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func provider_exec() {
+	fmt.Println("works!")
+}

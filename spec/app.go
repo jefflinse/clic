@@ -15,19 +15,19 @@ type App struct {
 }
 
 // NewAppFromFile creates a new clic app from the specified spec file.
-func NewAppFromFile(path string) (*App, error) {
+func NewAppFromFile(path string) (App, error) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return App{}, err
 	}
 
 	return NewApp(content)
 }
 
 // NewApp creates a new clic app from the provided spec content.
-func NewApp(data []byte) (*App, error) {
-	app := &App{}
-	return app, io.Unmarshal(data, app)
+func NewApp(data []byte) (App, error) {
+	app := App{}
+	return app, io.Unmarshal(data, &app)
 }
 
 // TraceString prints the app hierarchy.
@@ -44,16 +44,23 @@ func (a App) TraceString() string {
 }
 
 // Validate returns an error if the app spec is invalid.
-func (a App) Validate() error {
+func (a App) Validate() (App, error) {
 	if a.Name == "" {
-		return fmt.Errorf("invalid app spec: missing name")
+		return a, fmt.Errorf("invalid app spec: missing name")
 	}
 
+	vcs := []Command{}
 	for _, c := range a.Commands {
-		if err := c.Validate(); err != nil {
-			return err
+		vc, err := c.Validate()
+		if err != nil {
+			return a, err
 		}
+
+		vcs = append(vcs, vc)
 	}
 
-	return nil
+	return App{
+		Name:     a.Name,
+		Commands: vcs,
+	}, nil
 }

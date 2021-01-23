@@ -20,5 +20,6 @@ commands:
           type: string
           required: true
         - name: explative
-          default: fuck you
+          type: string
           required: false # defaults to flag
+          default: fuck you

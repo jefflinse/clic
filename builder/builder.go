@@ -12,5 +12,5 @@ type Builder interface {
 type Output struct {
 	Path string
 	Type string
-	Spec *spec.App
+	Spec spec.App
 }

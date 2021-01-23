@@ -1,4 +1,4 @@
-package builder
+package gobuilder
 
 import (
 	"bufio"
@@ -8,26 +8,25 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/jefflinse/clic/spec"
+	"github.com/jefflinse/clic/builder"
 	"github.com/jefflinse/clic/writer"
 )
 
 // The Go builder builds a native binary from Go source code.
 type Go struct {
-	spec    *spec.App
 	sources *writer.Output
 }
 
-// NewGo creates a new Go builder.
-func NewGo(spec *spec.App, sources *writer.Output) *Go {
+// New creates a new Go builder.
+func New(sources *writer.Output) *Go {
 	log.Println("creating Go builder")
-	return &Go{spec: spec, sources: sources}
+	return &Go{sources: sources}
 }
 
-// Build compiles the files in the source directory into a binary.
-func (g Go) Build(outputFile string) (*Output, error) {
+// Build compiles the Go file(s) in the source directory into a binary.
+func (g Go) Build(outputFile string) (*builder.Output, error) {
 	// go mod init
-	if err := g.runBashCmd(fmt.Sprintf(`go mod init %s`, g.spec.Name)); err != nil {
+	if err := g.runBashCmd(fmt.Sprintf(`go mod init %s`, g.sources.Spec.Name)); err != nil {
 		return nil, err
 	}
 
@@ -41,7 +40,7 @@ func (g Go) Build(outputFile string) (*Output, error) {
 		return nil, err
 	}
 
-	return &Output{Type: "go", Path: outputFile}, nil
+	return &builder.Output{Type: "go", Path: outputFile}, nil
 }
 
 func (g Go) runBashCmd(cmd string) error {

@@ -15,7 +15,7 @@ type Writer interface {
 type Output struct {
 	Dir       string
 	FileNames []string
-	Spec      *spec.App
+	Spec      spec.App
 }
 
 func createSourceDir() (string, error) {

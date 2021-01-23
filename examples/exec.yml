@@ -5,4 +5,10 @@ commands:
     description: prints a greeting
     exec:
       path: echo
-      args: ["-e", "hello, world!"]
+      args: ["-e", "'hello, {{params.person}}! {{params.extra}}'"]
+      params:
+        - name: person
+          as: arg
+          type: string
+        - name: extra
+          as: flag

@@ -8,10 +8,10 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/jefflinse/clic/builder"
+	gobuilder "github.com/jefflinse/clic/builder/go"
 	"github.com/jefflinse/clic/io"
 	"github.com/jefflinse/clic/spec"
-	"github.com/jefflinse/clic/writer"
+	gowriter "github.com/jefflinse/clic/writer/go"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,6 @@ var rootCmd *cobra.Command
 // Execute executes the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprint(os.Stderr, err)
 		os.Exit(1)
 	}
 }
@@ -60,7 +59,7 @@ Create CLI applications from YAML or JSON specifications.`,
 		Short: "validate an app spec",
 		Long:  `validate an app spec`,
 		Args:  cobra.MinimumNArgs(1),
-		RunE:  validate,
+		Run:   validate,
 	}
 	rootCmd.AddCommand(validateCmd)
 }
@@ -80,7 +79,7 @@ func build(cmd *cobra.Command, args []string) error {
 		os.RemoveAll(srcDir)
 	}()
 
-	generated, err := writer.NewGo(app).WriteFiles(srcDir)
+	sources, err := gowriter.New(app).WriteFiles(srcDir)
 	if err != nil {
 		return err
 	}
@@ -99,7 +98,7 @@ func build(cmd *cobra.Command, args []string) error {
 		outputFile = path.Join(cwd, outputFile)
 	}
 
-	b := builder.NewGo(app, generated)
+	b := gobuilder.New(sources)
 	built, err := b.Build(outputFile)
 	if err != nil {
 		return err
@@ -111,7 +110,7 @@ func build(cmd *cobra.Command, args []string) error {
 }
 
 func generate(cmd *cobra.Command, args []string) error {
-	app, err := loadAppSpec(args[0])
+	appSpec, err := loadAppSpec(args[0])
 	if err != nil {
 		return err
 	}
@@ -130,34 +129,28 @@ func generate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	generated, err := writer.NewGo(app).WriteFiles(outputDir)
+	_, err = gowriter.New(appSpec).WriteFiles(outputDir)
 	if err != nil {
 		return err
 	}
 
-	log.Println("generated", len(generated.FileNames), "files into", generated.Dir)
 	return nil
 }
 
-func validate(cmd *cobra.Command, args []string) error {
-	app, err := loadAppSpec(args[0])
-	if err != nil {
-		return err
+func validate(cmd *cobra.Command, args []string) {
+	if _, err := loadAppSpec(args[0]); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
-
-	return app.Validate()
 }
 
-func loadAppSpec(file string) (*spec.App, error) {
-	log.Println("loading app spec from", file)
+func loadAppSpec(file string) (spec.App, error) {
+	log.Println("reading app spec from", file)
 	app, err := spec.NewAppFromFile(file)
 	if err != nil {
-		panic(err)
+		return spec.App{}, err
 	}
 
-	if err := app.Validate(); err != nil {
-		panic(err)
-	}
-
-	return app, nil
+	log.Println("validating app spec")
+	return app.Validate()
 }
