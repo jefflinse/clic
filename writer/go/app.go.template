@@ -24,7 +24,7 @@ func main() {
 	}
 
 	{{- range .Flags}}
-	{{$cmdName}}_cmd.Flags().{{.Type}}("{{.Name}}", "TODO: pipe through default", "TODO: pipe through description")
+	{{$cmdName}}_cmd.Flags().{{.Type}}("{{.Name}}", "{{.Default}}", "{{.Description}}")
 	{{end}}
 	
 	rootCmd.AddCommand({{$cmdName}}_cmd)

@@ -17,9 +17,11 @@ commands:
       args: ["-e", "{{params.explative}}, {{params.name}}!"]
       params:
         - name: name
+          description: name of person to yell at
           type: string
           required: true
         - name: explative
+          description: the explative to use when chastizing
           type: string
           required: false # defaults to flag
           default: fuck you

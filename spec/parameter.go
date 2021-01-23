@@ -14,10 +14,12 @@ const (
 
 // A Parameter represents a configurable aspect of a command, and is represented as an argument or flag.
 type Parameter struct {
-	Name     string `json:"name"`
-	As       string `json:"as,omitempty"`       // 'arg' (default) or 'flag'
-	Type     string `json:"type,omitempty"`     // type of value, e.g. 'string', 'bool', etc.
-	Required *bool  `json:"required,omitempty"` // args are always required, flags can be required (default = false)
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	As          string `json:"as,omitempty"`       // 'arg' (default) or 'flag'
+	Type        string `json:"type,omitempty"`     // type of value, e.g. 'string', 'bool', etc.
+	Required    *bool  `json:"required,omitempty"` // args are always required, flags can be required (default = false)
+	Default     string `json:"default,omitempty"`
 }
 
 // Validate returns an error if the parameter spec is invalid.

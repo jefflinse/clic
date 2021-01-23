@@ -34,12 +34,15 @@ func (c command) NArgs() int {
 }
 
 type arg struct {
-	Name string
+	Name        string
+	Description string
 }
 
 type flag struct {
-	Name string
-	Type string
+	Name        string
+	Description string
+	Type        string
+	Default     string
 }
 
 // New creates a new Go writer.
@@ -65,14 +68,17 @@ func (g Go) content() app {
 		for _, param := range cmd.Exec.Parameters {
 			if param.As == spec.ArgParameter {
 				a := arg{
-					Name: asArgName(param.Name),
+					Name:        asArgName(param.Name),
+					Description: param.Description,
 				}
 
 				c.Args = append(c.Args, a)
 			} else {
 				f := flag{
-					Name: asFlagName(param.Name),
-					Type: strings.Title(param.Type),
+					Name:        asFlagName(param.Name),
+					Description: param.Description,
+					Type:        strings.Title(param.Type),
+					Default:     param.Default,
 				}
 
 				c.Flags = append(c.Flags, f)
