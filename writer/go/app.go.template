@@ -22,7 +22,7 @@ func main() {
 		Short: "{{.Name}}",
 		Args:  cobra.MinimumNArgs({{.NArgs}}),
 {{- with .Exec}}
-		{{$exec := .}}
+		{{- $exec := .}}
 		Run: func(cmd *cobra.Command, argValues []string) {
 			path := "{{.Path}}"
 			execArgs := []string{
@@ -32,29 +32,28 @@ func main() {
 			}
 
 			// parameterize exec path and each exec arg with arg values
-			{{range $argIndex, $arg := $cmd.Args}}
+			{{- range $argIndex, $arg := $cmd.Args}}
 			path = strings.ReplaceAll(path, "{params.{{$arg.Name}}}", argValues[{{$argIndex}}])
-			{{range $execArgIndex, $execArgValue := $exec.Args}}
+			{{- range $execArgIndex, $execArgValue := $exec.Args}}
 			execArgs[{{$execArgIndex}}] = strings.ReplaceAll(execArgs[{{$execArgIndex}}], "{params.{{$arg.Name}}}", argValues[{{$argIndex}}])
-			{{end}}
+			{{end -}}
 			{{end}}
 
 			// parameterize exec path and each exec arg with flag values
 			var flagVal string
-			{{range $flagIndex, $flag := $cmd.Flags}}
+			{{- range $flagIndex, $flag := $cmd.Flags}}
 			flagVal, _ = cmd.Flags().Get{{$flag.Type}}("{{$flag.Name}}")
 			path = strings.ReplaceAll(path, "{params.{{$flag.Name}}}", flagVal)
-			{{range $execArgIndex, $execArgValue := $exec.Args}}
+			{{- range $execArgIndex, $execArgValue := $exec.Args}}
 			execArgs[{{$execArgIndex}}] = strings.ReplaceAll(execArgs[{{$execArgIndex}}], "{params.{{$flag.Name}}}", flagVal)
+			{{end -}}
 			{{end}}
-			{{end}}
-			
 			doexec(path, execArgs)
 		},
 {{- end}}
 	}
 
-	{{range .Flags}}
+	{{range .Flags -}}
 	{{$cmd.Name}}_cmd.Flags().{{.Type}}("{{.Name}}", "{{.Default}}", "{{.Description}}")
 	{{end -}}
 	
