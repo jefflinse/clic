@@ -1,5 +1,4 @@
-name: rest
-description: a sample app demonstrating the rest command provider
+name: sample
 commands:
   - name: fetch
     description: fetches some data

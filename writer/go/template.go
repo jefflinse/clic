@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"io"
 	"net/http"
 	"os"
@@ -109,16 +108,17 @@ func doexec(path string, args []string) {
 }
 
 func dorest(method string, endpoint string, printStatus bool) {
-	log.Println(method, endpoint)
 	client := http.Client{}
 	request, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	response, err := client.Do(request)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	if printStatus {
