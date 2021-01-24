@@ -6,6 +6,9 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -53,6 +56,14 @@ func main() {
 			doexec(path, execArgs)
 		},
 {{- end}}
+{{- with .REST}}
+		{{- $rest := .}}
+		Run: func(cmd *cobra.Command, argValues []string) {
+			method := "{{.Method}}"
+			endpoint := "{{.Endpoint}}"
+			dorest(method, endpoint)
+		},
+{{- end}}
 	}
 
 	{{range .Flags -}}
@@ -85,5 +96,28 @@ func doexec(path string, args []string) {
 	}
 
 	os.Exit(0)
+}
+
+func dorest(method string, endpoint string) {
+	client := http.Client{}
+	request, err := http.NewRequest(method, endpoint, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Fprintln(os.Stdout, response.Status)
+
+	defer response.Body.Close()
+	io.Copy(os.Stdout, response.Body)
+}
+
+// TODO: remove this hack that satisfies the "strings" import usage when no parameters are being replaced
+func hack() strings.Builder {
+	return strings.Builder{}
 }
 `

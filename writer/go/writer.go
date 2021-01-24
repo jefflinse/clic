@@ -26,6 +26,7 @@ type command struct {
 	Args  []arg
 	Flags []flag
 	Exec  *spec.Exec
+	REST  *spec.REST
 }
 
 func (c command) NArgs() int {
@@ -60,26 +61,29 @@ func (g Go) content() app {
 			Name:  cmd.Name,
 			Args:  []arg{},
 			Flags: []flag{},
-			Exec:  &cmd.Exec,
+			Exec:  cmd.Exec,
+			REST:  cmd.REST,
 		}
 
-		for _, param := range cmd.Exec.Parameters {
-			if param.As == spec.ArgParameter {
-				a := arg{
-					Name:        asArgName(param.Name),
-					Description: param.Description,
-				}
+		if cmd.Exec != nil {
+			for _, param := range cmd.Exec.Parameters {
+				if param.As == spec.ArgParameter {
+					a := arg{
+						Name:        asArgName(param.Name),
+						Description: param.Description,
+					}
 
-				c.Args = append(c.Args, a)
-			} else {
-				f := flag{
-					Name:        asFlagName(param.Name),
-					Description: param.Description,
-					Type:        strings.Title(param.Type),
-					Default:     param.Default,
-				}
+					c.Args = append(c.Args, a)
+				} else {
+					f := flag{
+						Name:        asFlagName(param.Name),
+						Description: param.Description,
+						Type:        strings.Title(param.Type),
+						Default:     param.Default,
+					}
 
-				c.Flags = append(c.Flags, f)
+					c.Flags = append(c.Flags, f)
+				}
 			}
 		}
 

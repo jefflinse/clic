@@ -1,0 +1,8 @@
+name: rest
+description: a sample app demonstrating the rest command provider
+commands:
+  - name: fetch
+    description: fetches some data
+    rest:
+      method: GET
+      endpoint: https://reqres.in/api/users/2

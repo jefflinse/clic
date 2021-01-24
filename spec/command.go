@@ -10,7 +10,8 @@ type Command struct {
 	Description string `json:"description,omitempty"`
 
 	// providers
-	Exec Exec `json:"exec,omitempty"`
+	Exec *Exec `json:"exec,omitempty"`
+	REST *REST `json:"rest,omitempty"`
 }
 
 // Validate returns an error if the command is invalid.
@@ -21,7 +22,7 @@ func (c Command) Validate() (Command, error) {
 
 	// require exactly one provider, specifying >1 is undefined behavior
 	var provider Provider
-	for _, p := range []Provider{c.Exec} {
+	for _, p := range []Provider{c.Exec, c.REST} {
 		provider = p
 		if provider == nil {
 			continue
@@ -37,9 +38,18 @@ func (c Command) Validate() (Command, error) {
 		return c, err
 	}
 
-	return Command{
+	vc := Command{
 		Name:        c.Name,
 		Description: c.Description,
-		Exec:        vp.(Exec),
-	}, nil
+	}
+
+	if vp.Name() == "exec" {
+		execProvider, _ := vp.(Exec)
+		vc.Exec = &execProvider
+	} else if vp.Name() == "rest" {
+		restProvider, _ := vp.(REST)
+		vc.REST = &restProvider
+	}
+
+	return vc, nil
 }
