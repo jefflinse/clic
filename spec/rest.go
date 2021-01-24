@@ -14,6 +14,16 @@ type REST struct {
 	NoStatus bool `json:"no_status,omitempty"`
 }
 
+// GetParameters returns the set of parameters for the provider.
+func (r REST) GetParameters() ParameterSet {
+	return r.Parameters
+}
+
+// IsEmpty returns true if all of the fields on the provider are empty.
+func (r REST) IsEmpty() bool {
+	return r.Method == "" && r.Endpoint == "" && len(r.Parameters) == 0 && r.NoStatus == false
+}
+
 // Name returns the name of the provider.
 func (r REST) Name() string {
 	return "rest"

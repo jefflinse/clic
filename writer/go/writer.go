@@ -25,8 +25,8 @@ type command struct {
 	Name  string
 	Args  []arg
 	Flags []flag
-	Exec  *spec.Exec
-	REST  *spec.REST
+	Exec  spec.Exec
+	REST  spec.REST
 }
 
 func (c command) NArgs() int {
@@ -65,49 +65,26 @@ func (g Go) content() app {
 			REST:  cmd.REST,
 		}
 
-		if cmd.Exec != nil {
-			for _, param := range cmd.Exec.Parameters {
-				if param.As == spec.ArgParameter {
-					a := arg{
-						Name:        asArgName(param.Name),
-						Description: param.Description,
-					}
-
-					c.Args = append(c.Args, a)
-				} else {
-					f := flag{
-						Name:        asFlagName(param.Name),
-						Description: param.Description,
-						Type:        strings.Title(param.Type),
-						Default:     param.Default,
-					}
-
-					c.Flags = append(c.Flags, f)
+		for _, param := range cmd.Provider().GetParameters() {
+			if param.As == spec.ArgParameter {
+				a := arg{
+					Name:        asArgName(param.Name),
+					Description: param.Description,
 				}
-			}
-		} else if cmd.REST != nil {
-			for _, param := range cmd.REST.Parameters {
-				if param.As == spec.ArgParameter {
-					a := arg{
-						Name:        asArgName(param.Name),
-						Description: param.Description,
-					}
 
-					c.Args = append(c.Args, a)
-				} else {
-					f := flag{
-						Name:        asFlagName(param.Name),
-						Description: param.Description,
-						Type:        strings.Title(param.Type),
-						Default:     param.Default,
-					}
-
-					c.Flags = append(c.Flags, f)
+				c.Args = append(c.Args, a)
+			} else {
+				f := flag{
+					Name:        asFlagName(param.Name),
+					Description: param.Description,
+					Type:        strings.Title(param.Type),
+					Default:     param.Default,
 				}
+
+				c.Flags = append(c.Flags, f)
 			}
 		}
 
-		log.Println(c)
 		content.Commands = append(content.Commands, c)
 	}
 

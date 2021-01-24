@@ -11,6 +11,16 @@ type Exec struct {
 	Parameters ParameterSet `json:"params,omitempty"`
 }
 
+// GetParameters returns the set of parameters for the provider.
+func (e Exec) GetParameters() ParameterSet {
+	return e.Parameters
+}
+
+// IsEmpty returns true if all of the fields on the provider are empty.
+func (e Exec) IsEmpty() bool {
+	return e.Path == "" && len(e.Args) == 0 && len(e.Parameters) == 0
+}
+
 // Name returns the name of the provider.
 func (e Exec) Name() string {
 	return "exec"
