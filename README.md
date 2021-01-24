@@ -2,7 +2,7 @@
 
 ![build status](https://img.shields.io/github/workflow/status/jefflinse/clic/CI) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/clic) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/clic)
 
-**clic** is a tool for quickly creating and building command line apps from configuration files. It defines a common app spec format that can be run directly or built into binaries or scripts for a variety of platforms.
+**clic** is a tool for rapidly defining and composing command line apps from simple configuration files. It utilizes a common app spec format that can be built into a native Go binary.
 
 - [Quickstart](#quickstart)
 - [Specification Format](#specification-format)
@@ -65,7 +65,7 @@ clic can do more than just execute local commands. See the complete list of [Com
 
 A clic spec can be written in YAML or JSON. The root object describes the application, which contains one or more commands, each of which can contain any number of nested subcommands.
 
-### App Spec
+### App
 
 An app spec has the following properties:
 
@@ -75,7 +75,7 @@ An app spec has the following properties:
 | `commands` | **Required.** A set of commmand specs. | array |
 | `description` | A description of the app. | string |
 
-### Command Spec
+### Command
 
 A command spec defines a command's behavior via a provider. It has the following properties:
 
@@ -85,7 +85,7 @@ A command spec defines a command's behavior via a provider. It has the following
 | `<provider>` | **Required.** Configuration for the provider that executes the logic for the command. | object |
 | `description` | A description of the command. | string |
 
-`<provider>` must be the name of a supported [command provider](#command-providers), and its value must be an object defining the provider's configuration.
+`<provider>` must be the name of a supported [command provider](#command-providers), and its value is an object defining the provider's configuration.
 
 ## Command Providers
 
@@ -103,9 +103,8 @@ exec:
 
 ## V1 Roadmap
 
-- Settle on nomenclature for command providers (specific command type implementations) and app providers (generators/builders for a particular language)
 - Full unit test coverage
-- Support for running a spec on the fly (`clic run`)
+- Support for running a spec on the fly (`clic run`) using Go + Cobra defaults for the interface
 
 ## Post-V1 Roadmap
 
@@ -113,6 +112,5 @@ exec:
 - Support for app-specific clic config in spec
 - Suppport for directory-based spec composition (i.e. Terraform)
 - Support for generating and/or building with more than one provider simultaneously
-- Support for TOML spec files
-- Support for HCL spec files
-- Support for directly running a spec without gen+build first
+- Support for TOML spec files?
+- Support for HCL spec files?
