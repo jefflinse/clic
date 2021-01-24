@@ -1,0 +1,17 @@
+name: greeter
+commands:
+  - name: greet
+    description: greets someone
+    exec:
+      path: echo
+      args: ["{params.greeting}, {params.name}!"]
+      params:
+        - name: name
+          description: name of person to greet
+          type: string
+          required: true
+        - name: greeting
+          description: the greeting phrase to use
+          type: string
+          required: false # defaults to flag
+          default: Hello
