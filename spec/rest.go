@@ -6,8 +6,9 @@ import (
 
 // REST is a provider for calling REST endpoints.
 type REST struct {
-	Method   string `json:"method"`
-	Endpoint string `json:"endpoint"`
+	Method     string       `json:"method"`
+	Endpoint   string       `json:"endpoint"`
+	Parameters ParameterSet `json:"params,omitempty"`
 
 	// When true, disables printing the HTTP status before printing the response body
 	NoStatus bool `json:"no_status,omitempty"`
@@ -26,9 +27,15 @@ func (r REST) Validate() (Provider, error) {
 		return r, fmt.Errorf("invalid rest provider: missing endpoint")
 	}
 
+	validatedParams, err := r.Parameters.Validate()
+	if err != nil {
+		return r, err
+	}
+
 	return REST{
-		Method:   r.Method,
-		Endpoint: r.Endpoint,
-		NoStatus: r.NoStatus,
+		Method:     r.Method,
+		Endpoint:   r.Endpoint,
+		Parameters: validatedParams,
+		NoStatus:   r.NoStatus,
 	}, nil
 }

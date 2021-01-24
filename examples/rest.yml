@@ -5,5 +5,9 @@ commands:
     description: fetches some data
     rest:
       method: GET
-      endpoint: https://reqres.in/api/users/2
+      endpoint: https://reqres.in/api/users/{params.user-id}
       # no_status: true
+      params:
+        - name: user_id
+          type: string
+          required: true

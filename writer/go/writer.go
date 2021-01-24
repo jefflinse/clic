@@ -85,8 +85,29 @@ func (g Go) content() app {
 					c.Flags = append(c.Flags, f)
 				}
 			}
+		} else if cmd.REST != nil {
+			for _, param := range cmd.REST.Parameters {
+				if param.As == spec.ArgParameter {
+					a := arg{
+						Name:        asArgName(param.Name),
+						Description: param.Description,
+					}
+
+					c.Args = append(c.Args, a)
+				} else {
+					f := flag{
+						Name:        asFlagName(param.Name),
+						Description: param.Description,
+						Type:        strings.Title(param.Type),
+						Default:     param.Default,
+					}
+
+					c.Flags = append(c.Flags, f)
+				}
+			}
 		}
 
+		log.Println(c)
 		content.Commands = append(content.Commands, c)
 	}
 

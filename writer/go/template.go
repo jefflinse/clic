@@ -45,7 +45,7 @@ func main() {
 			{{end}}
 
 			// parameterize exec path and each exec arg with flag values
-			var flagVal string
+			{{if $cmd.Flags}}var flagVal string{{end}}
 			{{- range $flagIndex, $flag := $cmd.Flags}}
 			flagVal, _ = cmd.Flags().Get{{$flag.Type}}("{{$flag.Name}}")
 			path = strings.ReplaceAll(path, "{params.{{$flag.Name}}}", flagVal)
@@ -61,6 +61,18 @@ func main() {
 		Run: func(cmd *cobra.Command, argValues []string) {
 			method := "{{.Method}}"
 			endpoint := "{{.Endpoint}}"
+
+			// parameterize endpoint with arg values
+			{{- range $argIndex, $arg := $cmd.Args}}
+			endpoint = strings.ReplaceAll(endpoint, "{params.{{$arg.Name}}}", argValues[{{$argIndex}}])
+			{{end}}
+
+			// parameterize endpoint with flag values
+			{{if $cmd.Flags}}var flagVal string{{end}}
+			{{- range $flagIndex, $flag := $cmd.Flags}}
+			flagVal, _ = cmd.Flags().Get{{$flag.Type}}("{{$flag.Name}}")
+			endpoint = strings.ReplaceAll(endpoint, "{params.{{$flag.Name}}}", flagVal)
+			{{end}}
 			dorest(method, endpoint, {{if .NoStatus}}false{{else}}true{{end}})
 		},
 {{- end}}
@@ -99,6 +111,7 @@ func doexec(path string, args []string) {
 }
 
 func dorest(method string, endpoint string, printStatus bool) {
+	log.Println(method, endpoint)
 	client := http.Client{}
 	request, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {

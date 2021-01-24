@@ -5,7 +5,7 @@ commands:
     description: prints a greeting
     exec:
       path: echo
-      args: ["-e", "'hello, {{params.person}}! {{params.extra}}'"]
+      args: ["-e", "'hello, {params.person}! {params.extra}'"]
       params:
         - name: person
           as: arg
