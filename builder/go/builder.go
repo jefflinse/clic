@@ -19,7 +19,6 @@ type Go struct {
 
 // New creates a new Go builder.
 func New(sources *writer.Output) *Go {
-	log.Println("creating Go builder")
 	return &Go{sources: sources}
 }
 

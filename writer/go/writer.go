@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -47,7 +46,6 @@ type flag struct {
 
 // New creates a new Go writer.
 func New(app spec.App) *Go {
-	log.Println("creating Go writer")
 	return &Go{spec: app}
 }
 
@@ -72,7 +70,6 @@ func (g Go) content() app {
 					Description: param.Description,
 				}
 
-				log.Println("arg:", a)
 				c.Args = append(c.Args, a)
 			} else {
 				f := flag{
@@ -82,12 +79,10 @@ func (g Go) content() app {
 					Default:     param.Default,
 				}
 
-				log.Println("flag:", f)
 				c.Flags = append(c.Flags, f)
 			}
 		}
 
-		log.Printf("cmd: %+v\n", c)
 		content.Commands = append(content.Commands, c)
 	}
 
@@ -96,14 +91,7 @@ func (g Go) content() app {
 
 // WriteFiles creates all source code files for the app.
 func (g Go) WriteFiles(targetDir string) (*writer.Output, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	filesGlob := path.Join(filepath.Dir(exe), "writer", "go", "*.go.template")
-	log.Println("loading app template(s) from", filesGlob)
-	t, err := template.New(path.Base("app.go.template")).ParseGlob(filesGlob)
+	t, err := template.New("app").Parse(appTemplate)
 	if err != nil {
 		return nil, err
 	}
