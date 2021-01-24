@@ -61,7 +61,7 @@ func main() {
 		Run: func(cmd *cobra.Command, argValues []string) {
 			method := "{{.Method}}"
 			endpoint := "{{.Endpoint}}"
-			dorest(method, endpoint)
+			dorest(method, endpoint, {{if .NoStatus}}false{{else}}true{{end}})
 		},
 {{- end}}
 	}
@@ -98,7 +98,7 @@ func doexec(path string, args []string) {
 	os.Exit(0)
 }
 
-func dorest(method string, endpoint string) {
+func dorest(method string, endpoint string, printStatus bool) {
 	client := http.Client{}
 	request, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
@@ -110,7 +110,9 @@ func dorest(method string, endpoint string) {
 		log.Fatalln(err)
 	}
 
-	fmt.Fprintln(os.Stdout, response.Status)
+	if printStatus {
+		fmt.Fprintln(os.Stdout, response.Status)
+	}
 
 	defer response.Body.Close()
 	io.Copy(os.Stdout, response.Body)

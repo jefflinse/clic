@@ -8,6 +8,9 @@ import (
 type REST struct {
 	Method   string `json:"method"`
 	Endpoint string `json:"endpoint"`
+
+	// When true, disables printing the HTTP status before printing the response body
+	NoStatus bool `json:"no_status,omitempty"`
 }
 
 // Name returns the name of the provider.
@@ -26,5 +29,6 @@ func (r REST) Validate() (Provider, error) {
 	return REST{
 		Method:   r.Method,
 		Endpoint: r.Endpoint,
+		NoStatus: r.NoStatus,
 	}, nil
 }
