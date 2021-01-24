@@ -17,8 +17,7 @@ func main() {
 	}
 	{{range .Commands -}}
 	{{$cmd := .}}
-	{{$cmdName := .Name}}
-	{{- $cmdName}}_cmd := &cobra.Command{
+	{{- $cmd.Name}}_cmd := &cobra.Command{
 		Use:   "{{.Name}}",
 		Short: "{{.Name}}",
 		Args:  cobra.MinimumNArgs({{.NArgs}}),
@@ -36,7 +35,17 @@ func main() {
 			{{range $argIndex, $arg := $cmd.Args}}
 			path = strings.ReplaceAll(path, "{params.{{$arg.Name}}}", argValues[{{$argIndex}}])
 			{{range $execArgIndex, $execArgValue := $exec.Args}}
-			execArgs[{{$execArgIndex}}] = strings.ReplaceAll("{{$execArgValue}}", "{params.{{$arg.Name}}}", argValues[{{$argIndex}}])
+			execArgs[{{$execArgIndex}}] = strings.ReplaceAll(execArgs[{{$execArgIndex}}], "{params.{{$arg.Name}}}", argValues[{{$argIndex}}])
+			{{end}}
+			{{end}}
+
+			// parameterize exec path and each exec arg with flag values
+			var flagVal string
+			{{range $flagIndex, $flag := $cmd.Flags}}
+			flagVal, _ = cmd.Flags().Get{{$flag.Type}}("{{$flag.Name}}")
+			path = strings.ReplaceAll(path, "{params.{{$flag.Name}}}", flagVal)
+			{{range $execArgIndex, $execArgValue := $exec.Args}}
+			execArgs[{{$execArgIndex}}] = strings.ReplaceAll(execArgs[{{$execArgIndex}}], "{params.{{$flag.Name}}}", flagVal)
 			{{end}}
 			{{end}}
 			
@@ -46,10 +55,10 @@ func main() {
 	}
 
 	{{range .Flags}}
-	{{$cmdName}}_cmd.Flags().{{.Type}}("{{.Name}}", "{{.Default}}", "{{.Description}}")
+	{{$cmd.Name}}_cmd.Flags().{{.Type}}("{{.Name}}", "{{.Default}}", "{{.Description}}")
 	{{end -}}
 	
-	rootCmd.AddCommand({{$cmdName}}_cmd)
+	rootCmd.AddCommand({{$cmd.Name}}_cmd)
 
 	{{end -}}
 

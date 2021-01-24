@@ -1,15 +1,5 @@
 name: sample
 commands:
-  - name: greet
-    description: prints a greeting message
-    exec:
-      path: echo
-      args: ["-e", "hello {params.name}!"]
-      params:
-        - name: name
-          as: arg
-          type: string
-          required: true # defaults to arg
   - name: chastize
     description: insults someone
     exec:

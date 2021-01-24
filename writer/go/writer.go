@@ -72,6 +72,7 @@ func (g Go) content() app {
 					Description: param.Description,
 				}
 
+				log.Println("arg:", a)
 				c.Args = append(c.Args, a)
 			} else {
 				f := flag{
@@ -81,10 +82,12 @@ func (g Go) content() app {
 					Default:     param.Default,
 				}
 
+				log.Println("flag:", f)
 				c.Flags = append(c.Flags, f)
 			}
 		}
 
+		log.Printf("cmd: %+v\n", c)
 		content.Commands = append(content.Commands, c)
 	}
 

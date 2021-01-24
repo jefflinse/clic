@@ -10,6 +10,8 @@ import (
 func applyParameters(target string, cmd *cobra.Command, argValues []string) string {
 	parameterized := target
 
+	cmd.Flags().GetBool("fff")
+
 	return parameterized
 }
 
