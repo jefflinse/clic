@@ -17,5 +17,8 @@
 # VSCode
 .vscode/
 
-# clic binary
+# default output binary from "go build"
 clic
+
+# default output directory for "clic generate"
+out/
