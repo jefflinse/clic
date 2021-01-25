@@ -110,7 +110,6 @@ exec:
 
 - Add functional tests
 - Support for app-specific clic config in spec
-- Suppport for directory-based spec composition (i.e. Terraform)
 - Support for generating and/or building with more than one provider simultaneously
 - Support for TOML spec files?
 - Support for HCL spec files?
