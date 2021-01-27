@@ -5,32 +5,45 @@ import (
 	"os"
 )
 
-// DirectoryExists returns whether the given file or directory exists.
-func DirectoryExists(path string) (bool, error) {
+const (
+	// Nonexistent indicates that the path does not exist.
+	Nonexistent = iota
+
+	// File indicates that the path is a file.
+	File
+
+	// Directory indicates that the path is a diectory.
+	Directory
+)
+
+// PathType returns whether the specified path is a file, a direcotry, or does not exist.
+func PathType(path string) (int, error) {
 	info, err := os.Stat(path)
-	if err == nil {
+	if os.IsNotExist(err) {
+		return Nonexistent, nil
+	} else if err == nil {
 		if info.IsDir() {
-			return true, nil
+			return Directory, nil
 		}
 
-		return false, fmt.Errorf("%s is not a directory", path)
+		return File, nil
 	}
 
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-
-	return false, err
+	return -1, err
 }
 
 // CreateDirectory creates a directory, removing any existing directory if 'force' is true.
 func CreateDirectory(path string, force bool) error {
-	if exists, err := DirectoryExists(path); exists {
+	if t, err := PathType(path); err == nil && t == Directory {
 		if force {
 			if rmErr := os.RemoveAll(path); rmErr != nil {
 				return err
 			}
+		} else {
+			return fmt.Errorf("cannot create directory '%s': directory exists", path)
 		}
+	} else if err == nil && t == File {
+		return fmt.Errorf("cannot create directory '%s'; file exists", path)
 	} else if err != nil {
 		return err
 	}

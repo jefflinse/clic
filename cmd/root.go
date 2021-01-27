@@ -151,14 +151,7 @@ func validate(cmd *cobra.Command, args []string) {
 
 func loadAppSpec(path string) (spec.App, error) {
 	log.Println("reading app spec from", path)
-	var app spec.App
-	var err error
-	if exists, _ := io.DirectoryExists(path); exists {
-		app, err = spec.NewAppFromDirectory(path)
-	} else {
-		app, err = spec.NewAppFromFile(path)
-	}
-
+	app, err := spec.NewAppFromPath(path)
 	if err != nil {
 		return spec.App{}, err
 	}

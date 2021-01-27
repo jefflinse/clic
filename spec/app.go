@@ -23,14 +23,22 @@ type App struct {
 	Commands []Command `json:"commands"`
 }
 
-// NewAppFromDirectory creates a new clic app from the specified directory containing spec files.
-func NewAppFromDirectory(path string) (App, error) {
-	if exists, err := io.DirectoryExists(path); err != nil {
+// NewAppFromPath create a new app spec from the specified file or directory.
+func NewAppFromPath(path string) (App, error) {
+	if t, err := io.PathType(path); err != nil {
 		return App{}, err
-	} else if !exists {
+	} else if t == io.Nonexistent {
 		return App{}, fmt.Errorf("path '%s' does not exist", path)
+	} else if t == io.File {
+		return newAppFromFile(path)
+	} else if t == io.Directory {
+		return newAppFromDirectory(path)
 	}
 
+	return App{}, fmt.Errorf("unexepcted error regarding path '%s'", path)
+}
+
+func newAppFromDirectory(path string) (App, error) {
 	var specFiles []string
 	for extension := range specFileUnmarshalers {
 		files, _ := filepath.Glob(filepath.Join(path, "*."+extension))
@@ -39,7 +47,7 @@ func NewAppFromDirectory(path string) (App, error) {
 
 	var specs []App
 	for _, file := range specFiles {
-		spec, err := NewAppFromFile(file)
+		spec, err := newAppFromFile(file)
 		if err != nil {
 			return App{}, err
 		}
@@ -49,8 +57,7 @@ func NewAppFromDirectory(path string) (App, error) {
 	return mergeAppSpecs(specs...)
 }
 
-// NewAppFromFile creates a new clic app from the specified spec file.
-func NewAppFromFile(path string) (App, error) {
+func newAppFromFile(path string) (App, error) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		return App{}, err
