@@ -2,7 +2,6 @@ package gobuilder
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -25,27 +24,25 @@ func New(sources *writer.Output) *Go {
 // Build compiles the Go file(s) in the source directory into a binary.
 func (g Go) Build(outputFile string) (*builder.Output, error) {
 	log.Println("building Go source files")
-	// go mod init
-	if err := g.runBashCmd(fmt.Sprintf(`go mod init %s`, g.sources.Spec.Name)); err != nil {
+
+	if err := g.runGo("mod", "init", g.sources.Spec.Name); err != nil {
 		return nil, err
 	}
 
-	// go get
-	if err := g.runBashCmd(`go get`); err != nil {
+	if err := g.runGo("get"); err != nil {
 		return nil, err
 	}
 
-	// go build
-	if err := g.runBashCmd(fmt.Sprintf(`go build -o %s`, outputFile)); err != nil {
+	if err := g.runGo("build", "-o", outputFile); err != nil {
 		return nil, err
 	}
 
-	return &builder.Output{Type: "go", Path: outputFile}, nil
+	return &builder.Output{Type: "Go", Path: outputFile, Spec: g.sources.Spec}, nil
 }
 
-func (g Go) runBashCmd(cmd string) error {
-	bashCmd := fmt.Sprintf("cd %s && %s", g.sources.Dir, cmd)
-	command := exec.Command("/bin/bash", "-c", bashCmd)
+func (g Go) runGo(args ...string) error {
+	command := exec.Command("go", args...)
+	command.Dir = g.sources.Dir
 	command.Env = os.Environ()
 
 	stderr, err := command.StderrPipe()
