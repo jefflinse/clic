@@ -22,3 +22,6 @@ clic
 
 # default output directory for "clic generate"
 out/
+
+# default output binary from "./clic build examples"
+sample
