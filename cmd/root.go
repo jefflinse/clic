@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -12,6 +11,8 @@ import (
 	"github.com/jefflinse/clic/io"
 	"github.com/jefflinse/clic/spec"
 	gowriter "github.com/jefflinse/clic/writer/go"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +32,10 @@ func init() {
 		Long: `clic - the command line interface composer
 
 Create CLI applications from YAML or JSON specifications.`,
+		PersistentPreRun: prerun,
 	}
+
+	rootCmd.PersistentFlags().StringP("verbosity", "v", "", "sets the level of log output")
 
 	// top-level commands
 	buildCmd := &cobra.Command{
@@ -65,6 +69,18 @@ Create CLI applications from YAML or JSON specifications.`,
 	rootCmd.AddCommand(validateCmd)
 }
 
+func prerun(cmd *cobra.Command, args []string) {
+	v, _ := cmd.Flags().GetString("verbosity")
+	switch v {
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	default:
+		zerolog.SetGlobalLevel(zerolog.NoLevel)
+	}
+}
+
 func build(cmd *cobra.Command, args []string) error {
 	app, err := loadAppSpec(args[0])
 	if err != nil {
@@ -76,10 +92,11 @@ func build(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	defer func() {
+		log.Debug().Str("dir", srcDir).Msg("sources")
 		if keep, _ := cmd.Flags().GetBool("keep-src"); keep {
-			log.Println("preserving sources at", srcDir)
+			log.Info().Msg("preserving sources")
 		} else {
-			log.Println("cleaning up", srcDir)
+			log.Info().Msg("cleaning up sources")
 			os.RemoveAll(srcDir)
 		}
 	}()
@@ -109,7 +126,7 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Println("built", built.Type, "app to", built.Path)
+	log.Info().Msgf("built %s app to %s", built.Type, built.Path)
 
 	return nil
 }
@@ -150,12 +167,12 @@ func validate(cmd *cobra.Command, args []string) {
 }
 
 func loadAppSpec(path string) (spec.App, error) {
-	log.Println("reading app spec from", path)
+	log.Info().Str("path", path).Msg("reading app spec")
 	app, err := spec.NewAppFromPath(path)
 	if err != nil {
 		return spec.App{}, err
 	}
 
-	log.Println("validating app spec")
+	log.Info().Msg("validating app spec")
 	return app.Validate()
 }

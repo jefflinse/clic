@@ -3,12 +3,12 @@ package gobuilder
 import (
 	"bufio"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 
 	"github.com/jefflinse/clic/builder"
 	"github.com/jefflinse/clic/writer"
+	"github.com/rs/zerolog/log"
 )
 
 // The Go builder builds a native binary from Go source code.
@@ -23,7 +23,7 @@ func New(sources *writer.Output) *Go {
 
 // Build compiles the Go file(s) in the source directory into a binary.
 func (g Go) Build(outputFile string) (*builder.Output, error) {
-	log.Println("building Go source files")
+	log.Info().Msg("building Go source files")
 
 	if err := g.runGo("mod", "init", g.sources.Spec.Name); err != nil {
 		return nil, err
@@ -47,19 +47,19 @@ func (g Go) runGo(args ...string) error {
 
 	stderr, err := command.StderrPipe()
 	if err != nil {
-		log.Fatalf("could not get stderr pipe: %v", err)
+		log.Fatal().Err(err).Msg("could not get stderr pipe")
 	}
 
 	stdout, err := command.StdoutPipe()
 	if err != nil {
-		log.Fatalf("could not get stdout pipe: %v", err)
+		log.Fatal().Err(err).Msg("could not get stdout pipe")
 	}
 
 	go func() {
 		merged := io.MultiReader(stderr, stdout)
 		scanner := bufio.NewScanner(merged)
 		for scanner.Scan() {
-			log.Printf(scanner.Text())
+			log.Debug().Msg(scanner.Text())
 		}
 	}()
 

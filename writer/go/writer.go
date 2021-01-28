@@ -1,7 +1,6 @@
 package gowriter
 
 import (
-	"log"
 	"os"
 	"path"
 	"strings"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/jefflinse/clic/spec"
 	"github.com/jefflinse/clic/writer"
+	"github.com/rs/zerolog/log"
 )
 
 // Go is the Golang writer.
@@ -98,7 +98,7 @@ func (g Go) WriteFiles(targetDir string) (*writer.Output, error) {
 		return nil, err
 	}
 
-	log.Println("writing Go source files")
+	log.Info().Msg("writing Go source files")
 	sourceFile := "app.go"
 	sourceFilePath := path.Join(targetDir, sourceFile)
 	f, err := os.Create(sourceFilePath)
