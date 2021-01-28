@@ -139,7 +139,7 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Info().Msgf("built %s app to %s", built.Type, built.Path)
+	log.Info().Msgf("built %s", built.Path)
 
 	return nil
 }
