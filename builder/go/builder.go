@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/jefflinse/clic/builder"
 	"github.com/jefflinse/clic/writer"
@@ -23,7 +24,8 @@ func New(sources *writer.Output) *Go {
 
 // Build compiles the Go file(s) in the source directory into a binary.
 func (g Go) Build(outputFile string) (*builder.Output, error) {
-	log.Info().Msg("building Go source files")
+	log.Info().Msg("building Go app")
+	log.Debug().Str("path", outputFile).Msg("output file")
 
 	if err := g.runGo("mod", "init", g.sources.Spec.Name); err != nil {
 		return nil, err
@@ -41,6 +43,7 @@ func (g Go) Build(outputFile string) (*builder.Output, error) {
 }
 
 func (g Go) runGo(args ...string) error {
+	log.Debug().Str("cmd", "go "+strings.Join(args, " ")).Msg("executing Go command")
 	command := exec.Command("go", args...)
 	command.Dir = g.sources.Dir
 	command.Env = os.Environ()
@@ -59,7 +62,7 @@ func (g Go) runGo(args ...string) error {
 		merged := io.MultiReader(stderr, stdout)
 		scanner := bufio.NewScanner(merged)
 		for scanner.Scan() {
-			log.Debug().Msg(scanner.Text())
+			log.Trace().Msg(scanner.Text())
 		}
 	}()
 

@@ -99,6 +99,8 @@ func (g Go) WriteFiles(targetDir string) (*writer.Output, error) {
 	}
 
 	log.Info().Msg("writing Go source files")
+	log.Debug().Str("path", targetDir).Msg("source files")
+
 	sourceFile := "app.go"
 	sourceFilePath := path.Join(targetDir, sourceFile)
 	f, err := os.Create(sourceFilePath)

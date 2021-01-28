@@ -70,15 +70,29 @@ Create CLI applications from YAML or JSON specifications.`,
 }
 
 func prerun(cmd *cobra.Command, args []string) {
+	var partsOrder []string
 	v, _ := cmd.Flags().GetString("verbosity")
 	switch v {
 	case "info":
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		partsOrder = []string{zerolog.MessageFieldName}
 	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		partsOrder = []string{zerolog.LevelFieldName, zerolog.MessageFieldName}
+	case "trace":
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+		partsOrder = []string{zerolog.TimestampFieldName, zerolog.LevelFieldName, zerolog.MessageFieldName}
+	case "":
+		fallthrough
 	default:
-		zerolog.SetGlobalLevel(zerolog.NoLevel)
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		partsOrder = []string{zerolog.MessageFieldName}
 	}
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		PartsOrder: partsOrder,
+	})
 }
 
 func build(cmd *cobra.Command, args []string) error {
@@ -92,11 +106,10 @@ func build(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	defer func() {
-		log.Debug().Str("dir", srcDir).Msg("sources")
 		if keep, _ := cmd.Flags().GetBool("keep-src"); keep {
-			log.Info().Msg("preserving sources")
+			log.Debug().Str("path", srcDir).Msg("preserving sources")
 		} else {
-			log.Info().Msg("cleaning up sources")
+			log.Debug().Str("path", srcDir).Msg("cleaning up sources")
 			os.RemoveAll(srcDir)
 		}
 	}()
@@ -167,7 +180,7 @@ func validate(cmd *cobra.Command, args []string) {
 }
 
 func loadAppSpec(path string) (spec.App, error) {
-	log.Info().Str("path", path).Msg("reading app spec")
+	log.Info().Msg("reading app spec")
 	app, err := spec.NewAppFromPath(path)
 	if err != nil {
 		return spec.App{}, err

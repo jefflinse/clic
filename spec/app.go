@@ -9,6 +9,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/jefflinse/clic/io"
+	"github.com/rs/zerolog/log"
 )
 
 var specFileUnmarshalers map[string]func(data []byte, v interface{}) error = map[string]func(data []byte, v interface{}) error{
@@ -30,8 +31,10 @@ func NewAppFromPath(path string) (App, error) {
 	} else if t == io.Nonexistent {
 		return App{}, fmt.Errorf("path '%s' does not exist", path)
 	} else if t == io.File {
+		log.Debug().Str("type", "file").Str("path", path).Msg("app spec")
 		return newAppFromFile(path)
 	} else if t == io.Directory {
+		log.Debug().Str("type", "directory").Str("path", path).Msg("app spec")
 		return newAppFromDirectory(path)
 	}
 
