@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -123,7 +122,7 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	srcDir, err := ioutil.TempDir("", "clic.build.*")
+	srcDir, err := afero.TempDir(fs, "", "clic.build.")
 	if err != nil {
 		return nil
 	}
