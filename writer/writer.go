@@ -1,8 +1,6 @@
 package writer
 
 import (
-	"io/ioutil"
-
 	"github.com/jefflinse/clic/spec"
 )
 
@@ -16,8 +14,4 @@ type Output struct {
 	Dir       string
 	FileNames []string
 	Spec      spec.App
-}
-
-func createSourceDir() (string, error) {
-	return ioutil.TempDir("", "clic.gen.go")
 }

@@ -14,12 +14,13 @@ import (
 
 // The Go builder builds a native binary from Go source code.
 type Go struct {
-	sources *writer.Output
+	sources    *writer.Output
+	execRunner func(cmd *exec.Cmd) error
 }
 
 // New creates a new Go builder.
-func New(sources *writer.Output) *Go {
-	return &Go{sources: sources}
+func New(sources *writer.Output, execRunner func(cmd *exec.Cmd) error) *Go {
+	return &Go{sources: sources, execRunner: execRunner}
 }
 
 // Build compiles the Go file(s) in the source directory into a binary.
@@ -66,7 +67,7 @@ func (g Go) runGo(args ...string) error {
 		}
 	}()
 
-	if err := command.Run(); err != nil {
+	if err := g.execRunner(command); err != nil {
 		return err
 	}
 

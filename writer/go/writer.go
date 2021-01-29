@@ -1,7 +1,6 @@
 package gowriter
 
 import (
-	"os"
 	"path"
 	"strings"
 	"text/template"
@@ -9,11 +8,13 @@ import (
 	"github.com/jefflinse/clic/spec"
 	"github.com/jefflinse/clic/writer"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/afero"
 )
 
 // Go is the Golang writer.
 type Go struct {
 	spec spec.App
+	fs   afero.Fs
 }
 
 type app struct {
@@ -46,8 +47,8 @@ type flag struct {
 }
 
 // New creates a new Go writer.
-func New(app spec.App) *Go {
-	return &Go{spec: app}
+func New(app spec.App, fs afero.Fs) *Go {
+	return &Go{spec: app, fs: fs}
 }
 
 // Content returns a model of the app to be used in the Go templates.
@@ -103,7 +104,7 @@ func (g Go) WriteFiles(targetDir string) (*writer.Output, error) {
 
 	sourceFile := "app.go"
 	sourceFilePath := path.Join(targetDir, sourceFile)
-	f, err := os.Create(sourceFilePath)
+	f, err := g.fs.Create(sourceFilePath)
 	if err != nil {
 		return nil, err
 	}
