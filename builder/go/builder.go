@@ -44,7 +44,7 @@ func (g Go) Build(outputFile string) (*builder.Output, error) {
 
 func (g Go) runGo(args ...string) error {
 	command := exec.Command("go", args...)
-	log.Debug().Str("cmd", command.String()).Msg("executing Go command")
+	log.Debug().Str("cmd", command.String()).Msg("run command")
 	command.Dir = g.sources.Dir
 	command.Env = os.Environ()
 
