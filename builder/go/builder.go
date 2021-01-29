@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/jefflinse/clic/builder"
 	"github.com/jefflinse/clic/writer"
@@ -44,8 +43,8 @@ func (g Go) Build(outputFile string) (*builder.Output, error) {
 }
 
 func (g Go) runGo(args ...string) error {
-	log.Debug().Str("cmd", "go "+strings.Join(args, " ")).Msg("executing Go command")
 	command := exec.Command("go", args...)
+	log.Debug().Str("cmd", command.String()).Msg("executing Go command")
 	command.Dir = g.sources.Dir
 	command.Env = os.Environ()
 
