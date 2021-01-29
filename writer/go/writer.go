@@ -51,7 +51,35 @@ func New(app spec.App, fs afero.Fs) *Go {
 	return &Go{spec: app, fs: fs}
 }
 
-// Content returns a model of the app to be used in the Go templates.
+// WriteFiles creates all source code files for the app.
+func (g Go) WriteFiles(targetDir string) (writer.Output, error) {
+	t, err := template.New("app").Parse(appTemplate)
+	if err != nil {
+		return writer.Output{}, err
+	}
+
+	log.Info().Msg("writing Go source files")
+	log.Debug().Str("path", targetDir).Msg("source files")
+
+	sourceFile := "app.go"
+	sourceFilePath := path.Join(targetDir, sourceFile)
+	f, err := g.fs.Create(sourceFilePath)
+	if err != nil {
+		return writer.Output{}, err
+	}
+
+	if err := t.Execute(f, g.content()); err != nil {
+		return writer.Output{}, err
+	}
+
+	return writer.Output{
+		Spec:      g.spec,
+		Dir:       targetDir,
+		FileNames: []string{sourceFile},
+	}, nil
+}
+
+// Returns a model of the app to be used in the Go template.
 func (g Go) content() app {
 	content := app{
 		Name: g.spec.Name,
@@ -90,34 +118,6 @@ func (g Go) content() app {
 	}
 
 	return content
-}
-
-// WriteFiles creates all source code files for the app.
-func (g Go) WriteFiles(targetDir string) (*writer.Output, error) {
-	t, err := template.New("app").Parse(appTemplate)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info().Msg("writing Go source files")
-	log.Debug().Str("path", targetDir).Msg("source files")
-
-	sourceFile := "app.go"
-	sourceFilePath := path.Join(targetDir, sourceFile)
-	f, err := g.fs.Create(sourceFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := t.Execute(f, g.content()); err != nil {
-		return nil, err
-	}
-
-	return &writer.Output{
-		Spec:      g.spec,
-		Dir:       targetDir,
-		FileNames: []string{sourceFile},
-	}, nil
 }
 
 func asArgName(str string) string {

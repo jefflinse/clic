@@ -77,6 +77,7 @@ Create CLI applications from YAML or JSON specifications.`,
 	rootCmd.AddCommand(validateCmd)
 }
 
+// Runs prior to any command. Processes global flags and establishes logging and I/O.
 func prerun(cmd *cobra.Command, args []string) {
 	var partsOrder []string
 	v, _ := cmd.Flags().GetString("verbosity")
@@ -116,6 +117,7 @@ func prerun(cmd *cobra.Command, args []string) {
 	}
 }
 
+// clic build
 func build(cmd *cobra.Command, args []string) error {
 	app, err := loadAppSpec(args[0])
 	if err != nil {
@@ -165,6 +167,7 @@ func build(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// clic generate
 func generate(cmd *cobra.Command, args []string) error {
 	appSpec, err := loadAppSpec(args[0])
 	if err != nil {
@@ -193,6 +196,7 @@ func generate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// clic validate
 func validate(cmd *cobra.Command, args []string) {
 	if _, err := loadAppSpec(args[0]); err != nil {
 		fmt.Println(err)

@@ -14,12 +14,12 @@ import (
 
 // The Go builder builds a native binary from Go source code.
 type Go struct {
-	sources    *writer.Output
+	sources    writer.Output
 	execRunner func(cmd *exec.Cmd) error
 }
 
 // New creates a new Go builder.
-func New(sources *writer.Output, execRunner func(cmd *exec.Cmd) error) *Go {
+func New(sources writer.Output, execRunner func(cmd *exec.Cmd) error) *Go {
 	return &Go{sources: sources, execRunner: execRunner}
 }
 

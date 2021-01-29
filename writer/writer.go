@@ -6,7 +6,7 @@ import (
 
 // A Writer takes an app spec and produces source code for a CLI app.
 type Writer interface {
-	WriteFiles(targetDir string) (*Output, error)
+	WriteFiles(path string) (Output, error)
 }
 
 // Output contains information about the generated source files.

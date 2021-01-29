@@ -42,6 +42,7 @@ func createDirectory(path string, force bool) error {
 	return fs.MkdirAll(path, 0755)
 }
 
+// Reads all eligible app spec files in the specified directory and returns the merged app.
 func newAppFromDirectory(path string) (spec.App, error) {
 	var specFiles []string
 	for extension := range specFileUnmarshalers {
@@ -62,6 +63,7 @@ func newAppFromDirectory(path string) (spec.App, error) {
 	return spec.MergeAppSpecs(specs...)
 }
 
+// Reads the specified app spec file and returns an app.
 func newAppFromFile(path string) (spec.App, error) {
 	content, err := afero.ReadFile(fs, path)
 	if err != nil {
@@ -82,6 +84,7 @@ func newAppFromFile(path string) (spec.App, error) {
 	return spec.App{}, fmt.Errorf("unsupported file extension '%s'", extension)
 }
 
+// Reads an app spec from the specified file or directory.
 func newAppFromPath(path string) (spec.App, error) {
 	isDir, err := afero.IsDir(fs, path)
 	if err != nil {
