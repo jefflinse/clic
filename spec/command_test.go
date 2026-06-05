@@ -6,8 +6,8 @@ import (
 	"github.com/jefflinse/clic/provider"
 	"github.com/jefflinse/clic/provider/noop"
 	"github.com/jefflinse/clic/spec"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
 )
 
 func TestNewCommandSpec(t *testing.T) {
@@ -76,14 +76,14 @@ func TestCommand_CLICommand(t *testing.T) {
 	tests := []struct {
 		name     string
 		cmd      *spec.Command
-		validate func(cliCmd *cli.Command)
+		validate func(cliCmd *cobra.Command)
 	}{
 		{
 			name: "assigns name and usage",
 			cmd:  &spec.Command{Name: "foo", Description: "bar", Provider: noopProvider()},
-			validate: func(cliCmd *cli.Command) {
-				assert.Equal(t, "foo", cliCmd.Name)
-				assert.Equal(t, "bar", cliCmd.Usage)
+			validate: func(cliCmd *cobra.Command) {
+				assert.Equal(t, "foo", cliCmd.Use)
+				assert.Equal(t, "bar", cliCmd.Short)
 			},
 		},
 	}

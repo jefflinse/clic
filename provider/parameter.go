@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/jefflinse/clic/ioutil"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -14,14 +15,14 @@ const (
 
 // A Parameter specifies a command parameter.
 type Parameter struct {
-	Name        string      `json:"name"                  yaml:"name"`
-	Description string      `json:"description,omitempty" yaml:"description,omitempty"`
-	Type        string      `json:"type"                  yaml:"type"`
-	Required    bool        `json:"required"              yaml:"required"`
-	Default     interface{} `json:"default,omitempty"     yaml:"default,omitempty"`
-	AsFlag      string      `json:"as_flag,omitempty"     yaml:"as_flag,omitempty"`
+	Name        string `json:"name"                  yaml:"name"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	Type        string `json:"type"                  yaml:"type"`
+	Required    bool   `json:"required"              yaml:"required"`
+	Default     any    `json:"default,omitempty"     yaml:"default,omitempty"`
+	AsFlag      string `json:"as_flag,omitempty"     yaml:"as_flag,omitempty"`
 
-	value interface{}
+	value any
 }
 
 const (
@@ -53,37 +54,19 @@ func (param *Parameter) CLIFlagName() string {
 	return toDashes(param.Name)
 }
 
-// CreateCLIFlag creates a CLI flag for this parameter.
-func (param *Parameter) CreateCLIFlag() cli.Flag {
-	var flag cli.Flag
+// registerFlag registers the parameter as a flag on the given flag set.
+func (param *Parameter) registerFlag(flags *pflag.FlagSet) {
+	name, usage := param.CLIFlagName(), param.Description
 	switch param.Type {
-	case "bool":
-		flag = &cli.BoolFlag{
-			Name:     param.CLIFlagName(),
-			Usage:    param.Description,
-			Required: param.Required,
-		}
-	case "int":
-		flag = &cli.IntFlag{
-			Name:     param.CLIFlagName(),
-			Usage:    param.Description,
-			Required: param.Required,
-		}
-	case "number":
-		flag = &cli.Float64Flag{
-			Name:     param.CLIFlagName(),
-			Usage:    param.Description,
-			Required: param.Required,
-		}
-	case "string":
-		flag = &cli.StringFlag{
-			Name:     param.CLIFlagName(),
-			Usage:    param.Description,
-			Required: param.Required,
-		}
+	case BoolParamType:
+		flags.Bool(name, false, usage)
+	case IntParamType:
+		flags.Int(name, 0, usage)
+	case NumberParamType:
+		flags.Float64(name, 0, usage)
+	case StringParamType:
+		flags.String(name, "", usage)
 	}
-
-	return flag
 }
 
 // SetDefaultValue assigns the default value to the parameter.
@@ -111,12 +94,12 @@ func (param *Parameter) SetDefaultValue() {
 }
 
 // SetValue assigns a value to the parameter.
-func (param *Parameter) SetValue(value interface{}) {
+func (param *Parameter) SetValue(value any) {
 	param.value = value
 }
 
 // Value returns the parameter's assigned value.
-func (param *Parameter) Value() interface{} {
+func (param *Parameter) Value() any {
 	if param.Type == BoolParamType {
 		value, _ := param.value.(bool)
 		if param.AsFlag != "" {
@@ -192,16 +175,21 @@ func NewInvalidParameterSpecError(reason string) error {
 // A ParameterSet is a slice of parameter pointers.
 type ParameterSet []*Parameter
 
-// CreateCLIFlags creates a set of CLI flags for this parameter set.
-func (ps ParameterSet) CreateCLIFlags() []cli.Flag {
-	flags := []cli.Flag{}
-	for _, param := range ps {
-		if !param.Required {
-			flags = append(flags, param.CreateCLIFlag())
-		}
+// ArgsUsage returns a usage string describing the set's required positional arguments.
+func (ps ParameterSet) ArgsUsage() string {
+	names := []string{}
+	for _, param := range ps.Required() {
+		names = append(names, "<"+param.CLIFlagName()+">")
 	}
 
-	return flags
+	return strings.Join(names, " ")
+}
+
+// RegisterFlags registers the set's optional parameters as flags on the given flag set.
+func (ps ParameterSet) RegisterFlags(flags *pflag.FlagSet) {
+	for _, param := range ps.Optional() {
+		param.registerFlag(flags)
+	}
 }
 
 // InjectValues replaces all param references with their corresponding values in the given string.
@@ -240,45 +228,45 @@ func (ps ParameterSet) Required() ParameterSet {
 	return required
 }
 
-// ResolveValues assigns values to the parameters from defaults and the CLI context.
-func (ps ParameterSet) ResolveValues(ctx *cli.Context) error {
-	args := ctx.Args().Slice()
-	required := ps.Required()
-
-	// assign values from args
-	for _, p := range required {
+// ResolveValues assigns values to the parameters from the positional arguments,
+// flags, and defaults provided via the cobra command.
+func (ps ParameterSet) ResolveValues(cmd *cobra.Command, args []string) error {
+	// assign required parameters from positional args, in order
+	for _, p := range ps.Required() {
 		if len(args) == 0 {
 			return fmt.Errorf("missing required argument: %s", p.CLIFlagName())
 		}
-		var value string
-		value, args = args[0], args[1:]
-		p.SetValue(value)
+
+		p.SetValue(args[0])
+		args = args[1:]
 	}
 
 	if len(args) > 0 {
 		return fmt.Errorf("unexpected argument(s): %v", strings.Join(args, " "))
 	}
 
-	// assign values from flags
+	// assign optional parameters from flags, falling back to defaults
+	flags := cmd.Flags()
 	for _, p := range ps.Optional() {
-		// assign default value
 		p.SetDefaultValue()
 
-		for _, flagName := range ctx.LocalFlagNames() {
-			if flagName != p.CLIFlagName() {
-				continue
-			}
+		if !flags.Changed(p.CLIFlagName()) {
+			continue
+		}
 
-			switch p.Type {
-			case BoolParamType:
-				p.SetValue(ctx.Bool(flagName))
-			case IntParamType:
-				p.SetValue(ctx.Int(flagName))
-			case NumberParamType:
-				p.SetValue(ctx.Float64(flagName))
-			case StringParamType:
-				p.SetValue(ctx.String(flagName))
-			}
+		switch p.Type {
+		case BoolParamType:
+			value, _ := flags.GetBool(p.CLIFlagName())
+			p.SetValue(value)
+		case IntParamType:
+			value, _ := flags.GetInt(p.CLIFlagName())
+			p.SetValue(value)
+		case NumberParamType:
+			value, _ := flags.GetFloat64(p.CLIFlagName())
+			p.SetValue(value)
+		case StringParamType:
+			value, _ := flags.GetString(p.CLIFlagName())
+			p.SetValue(value)
 		}
 	}
 
@@ -299,9 +287,4 @@ func (ps ParameterSet) Validate() error {
 // Underscores to dashes.
 func toDashes(str string) string {
 	return strings.ReplaceAll(str, "_", "-")
-}
-
-// Dashes to underscores.
-func toUnderscores(str string) string {
-	return strings.ReplaceAll(str, "-", "_")
 }

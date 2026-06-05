@@ -19,8 +19,8 @@ func main() {
 		args = append(args, os.Args[1:]...)
 	}
 
+	// the app reports its own errors via cobra; exit non-zero without re-reporting
 	if err := app.Run(args); err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err.Error())
 		os.Exit(1)
 	}
 }

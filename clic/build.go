@@ -13,7 +13,7 @@ import (
 
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/jefflinse/clic/spec"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 // codegenTemplate is the main.go source that gets stamped and compiled as the native
@@ -22,12 +22,17 @@ import (
 //go:embed codegen/main.template
 var codegenTemplate string
 
-func build(hmCtx *cli.Context) error {
-	if hmCtx.NArg() != 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "build", 1)
+func buildCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "build <specfile>",
+		Short: "bakes a clic spec into a native Go binary",
+		Args:  cobra.ExactArgs(1),
+		RunE:  build,
 	}
+}
 
-	specFilePath := hmCtx.Args().First()
+func build(cmd *cobra.Command, args []string) error {
+	specFilePath := args[0]
 	if !ioutil.FileExists(specFilePath) {
 		return fmt.Errorf("file not found")
 	}

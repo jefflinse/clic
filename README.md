@@ -40,13 +40,16 @@ commands:
 
 ```bash
 $ clic run myapp.clic.yml
-myapp - tools for managing my service
+tools for managing my service
 
-usage:
-  myapp  command [command options] [arguments...]
+Usage:
+  myapp [command]
 
-commands:
-  list-items  list all items in the catalog
+Available Commands:
+  list-items  list items in the catalog
+
+Flags:
+  -h, --help   help for myapp
 ```
 
 ```bash
@@ -91,13 +94,16 @@ Run the app spec without any additional arguments to view its usage:
 
 ```bash
 $ clic run myapp.yml
-myapp - an example of a clic app
+an example of a clic app
 
-usage:
-  myapp  command [command options] [arguments...]
+Usage:
+  myapp [command]
 
-commands:
+Available Commands:
   say-hello  prints a greeting to the world
+
+Flags:
+  -h, --help   help for myapp
 ```
 
 Now run our app spec with the `say-hello` command:
@@ -120,13 +126,16 @@ Now we can run it directly:
 
 ```bash
 $ ./myapp
-myapp - an example of a clic app
+an example of a clic app
 
-usage:
-  myapp  command [command options] [arguments...]
+Usage:
+  myapp [command]
 
-commands:
+Available Commands:
   say-hello  prints a greeting to the world
+
+Flags:
+  -h, --help   help for myapp
 ```
 
 ```bash

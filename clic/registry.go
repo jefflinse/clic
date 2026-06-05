@@ -8,14 +8,46 @@ import (
 
 	"github.com/jefflinse/clic/registry"
 	"github.com/jefflinse/clic/spec"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
-func listRegistry(hmCtx *cli.Context) error {
-	if hmCtx.NArg() > 0 {
-		cli.ShowCommandHelpAndExit(hmCtx, "list-registry", 1)
+func registerCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "register <specfile>",
+		Short: "registers an app with the specified path",
+		Args:  cobra.ExactArgs(1),
+		RunE:  register,
 	}
+}
 
+func unregisterCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "unregister <name>",
+		Short: "unregisters an app with the specified name",
+		Args:  cobra.ExactArgs(1),
+		RunE:  unregister,
+	}
+}
+
+func listRegistryCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list-registry",
+		Short: "lists registered apps",
+		Args:  cobra.NoArgs,
+		RunE:  listRegistry,
+	}
+}
+
+func pruneRegistryCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "prune-registry",
+		Short: "removes registered apps whose spec files no longer exist",
+		Args:  cobra.NoArgs,
+		RunE:  pruneRegistry,
+	}
+}
+
+func listRegistry(cmd *cobra.Command, args []string) error {
 	reg, err := registry.Load()
 	if err != nil {
 		return fmt.Errorf("error loading registry: %w", err)
@@ -37,18 +69,13 @@ func listRegistry(hmCtx *cli.Context) error {
 	return nil
 }
 
-func register(hmCtx *cli.Context) error {
-	if hmCtx.NArg() != 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "register", 1)
-	}
-
+func register(cmd *cobra.Command, args []string) error {
 	reg, err := registry.Load()
 	if err != nil {
 		return fmt.Errorf("error loading registry: %w", err)
 	}
 
-	path := hmCtx.Args().First()
-	absPath, err := filepath.Abs(path)
+	absPath, err := filepath.Abs(args[0])
 	if err != nil {
 		return fmt.Errorf("invalid file path: %w", err)
 	}
@@ -74,11 +101,7 @@ func register(hmCtx *cli.Context) error {
 	return nil
 }
 
-func pruneRegistry(hmCtx *cli.Context) error {
-	if hmCtx.NArg() > 0 {
-		cli.ShowCommandHelpAndExit(hmCtx, "prune-registry", 1)
-	}
-
+func pruneRegistry(cmd *cobra.Command, args []string) error {
 	reg, err := registry.Load()
 	if err != nil {
 		return fmt.Errorf("error loading registry: %w", err)
@@ -93,15 +116,11 @@ func pruneRegistry(hmCtx *cli.Context) error {
 	return nil
 }
 
-func unregister(hmCtx *cli.Context) error {
-	if hmCtx.NArg() != 1 {
-		cli.ShowCommandHelpAndExit(hmCtx, "unregister", 1)
-	}
-
+func unregister(cmd *cobra.Command, args []string) error {
 	reg, err := registry.Load()
 	if err != nil {
 		return fmt.Errorf("error loading registry: %w", err)
 	}
 
-	return reg.Remove(hmCtx.Args().First())
+	return reg.Remove(args[0])
 }

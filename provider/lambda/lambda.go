@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/jefflinse/clic/provider"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 // Spec describes the provider.
@@ -27,30 +26,22 @@ func New(v any) (provider.Provider, error) {
 	return &s, ioutil.Intermarshal(v, &s)
 }
 
-// ArgsUsage returns usage text for the arguments.
-func (s Spec) ArgsUsage() string {
-	argNames := []string{}
-	for _, param := range s.RequestParams {
-		if param.Required {
-			argNames = append(argNames, param.CLIFlagName())
-		}
+// Configure wires up the command's positional arguments, flags, and run behavior.
+func (s *Spec) Configure(cmd *cobra.Command) {
+	if usage := s.RequestParams.ArgsUsage(); usage != "" {
+		cmd.Use += " " + usage
 	}
 
-	return strings.Join(argNames, " ")
-}
+	s.RequestParams.RegisterFlags(cmd.Flags())
 
-// CLIActionFn creates a CLI action function.
-func (s Spec) CLIActionFn() cli.ActionFunc {
-	return func(ctx *cli.Context) error {
-		request, err := s.parameterizedRequest(ctx)
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		request, err := s.parameterizedRequest(cmd, args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n\n", err)
-			cli.ShowCommandHelpAndExit(ctx, ctx.Command.Name, 1)
+			return err
 		}
 
-		response, functionError, err := executeLambda(ctx.Context, s.ARN, request)
+		response, functionError, err := executeLambda(cmd.Context(), s.ARN, request)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
 			return err
 		} else if functionError != nil {
 			fmt.Fprint(os.Stderr, *functionError)
@@ -62,18 +53,13 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 	}
 }
 
-// CLIFlags creates a set of CLI flags.
-func (s Spec) CLIFlags() []cli.Flag {
-	return s.RequestParams.CreateCLIFlags()
-}
-
 // Type returns the type.
-func (s Spec) Type() string {
+func (s *Spec) Type() string {
 	return "lambda"
 }
 
 // Validate validates the provider.
-func (s Spec) Validate() error {
+func (s *Spec) Validate() error {
 	if s.ARN == "" {
 		return fmt.Errorf("invalid %s command spec: missing ARN", s.Type())
 	} else if err := s.RequestParams.Validate(); err != nil {
@@ -83,8 +69,8 @@ func (s Spec) Validate() error {
 	return nil
 }
 
-func (s *Spec) parameterizedRequest(ctx *cli.Context) (map[string]any, error) {
-	if err := s.RequestParams.ResolveValues(ctx); err != nil {
+func (s *Spec) parameterizedRequest(cmd *cobra.Command, args []string) (map[string]any, error) {
+	if err := s.RequestParams.ResolveValues(cmd, args); err != nil {
 		return nil, err
 	}
 

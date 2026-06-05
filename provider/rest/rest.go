@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/jefflinse/clic/provider"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 // Spec describes the provider.
@@ -31,25 +29,18 @@ func New(v any) (provider.Provider, error) {
 	return &s, ioutil.Intermarshal(v, &s)
 }
 
-// ArgsUsage returns usage text for the arguments.
-func (s Spec) ArgsUsage() string {
-	argNames := []string{}
-	for _, param := range s.allParams() {
-		if param.Required {
-			argNames = append(argNames, param.CLIFlagName())
-		}
+// Configure wires up the command's positional arguments, flags, and run behavior.
+func (s *Spec) Configure(cmd *cobra.Command) {
+	if usage := s.allParams().ArgsUsage(); usage != "" {
+		cmd.Use += " " + usage
 	}
 
-	return strings.Join(argNames, " ")
-}
+	s.allParams().RegisterFlags(cmd.Flags())
 
-// CLIActionFn creates a CLI action function.
-func (s Spec) CLIActionFn() cli.ActionFunc {
-	return func(ctx *cli.Context) error {
-		req, err := s.parameterizedRequest(ctx.Context, ctx)
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		req, err := s.parameterizedRequest(cmd.Context(), cmd, args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n\n", err)
-			cli.ShowCommandHelpAndExit(ctx, ctx.Command.Name, 1)
+			return err
 		}
 
 		code, body, err := doRequest(req)
@@ -66,18 +57,13 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 	}
 }
 
-// CLIFlags creates a set of CLI flags.
-func (s Spec) CLIFlags() []cli.Flag {
-	return s.allParams().CreateCLIFlags()
-}
-
 // Type returns the type.
-func (s Spec) Type() string {
+func (s *Spec) Type() string {
 	return "rest"
 }
 
 // Validate validates the provider.
-func (s Spec) Validate() error {
+func (s *Spec) Validate() error {
 	if s.Method == "" {
 		return fmt.Errorf("invalid %s command spec: missing method", s.Type())
 	} else if s.Endpoint == "" {
@@ -93,16 +79,14 @@ func (s *Spec) allParams() provider.ParameterSet {
 	return append(append(provider.ParameterSet{}, s.QueryParams...), s.BodyParams...)
 }
 
-func (s *Spec) parameterizedRequest(ctx context.Context, cliCtx *cli.Context) (*http.Request, error) {
-	body := map[string]any{}
-	if len(s.BodyParams) > 0 {
-		if err := s.BodyParams.ResolveValues(cliCtx); err != nil {
-			return nil, err
-		}
+func (s *Spec) parameterizedRequest(ctx context.Context, cmd *cobra.Command, args []string) (*http.Request, error) {
+	if err := s.allParams().ResolveValues(cmd, args); err != nil {
+		return nil, err
+	}
 
-		for _, param := range s.BodyParams {
-			body[param.Name] = param.Value()
-		}
+	body := map[string]any{}
+	for _, param := range s.BodyParams {
+		body[param.Name] = param.Value()
 	}
 
 	bodyBytes, err := json.Marshal(body)
@@ -121,10 +105,6 @@ func (s *Spec) parameterizedRequest(ctx context.Context, cliCtx *cli.Context) (*
 	}
 
 	if len(s.QueryParams) > 0 {
-		if err := s.QueryParams.ResolveValues(cliCtx); err != nil {
-			return nil, err
-		}
-
 		query := req.URL.Query()
 		for _, param := range s.QueryParams {
 			query.Add(param.Name, fmt.Sprintf("%v", param.Value()))
@@ -136,7 +116,7 @@ func (s *Spec) parameterizedRequest(ctx context.Context, cliCtx *cli.Context) (*
 	return req, nil
 }
 
-// Performs an HTTPS request.
+// Performs an HTTP request.
 func doRequest(req *http.Request) (int, []byte, error) {
 	client := http.Client{}
 	resp, err := client.Do(req)

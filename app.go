@@ -2,13 +2,13 @@ package clic
 
 import (
 	"github.com/jefflinse/clic/spec"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 // App is a configured app.
 type App struct {
-	cliApp *cli.App
-	spec   *spec.App
+	rootCmd *cobra.Command
+	spec    *spec.App
 }
 
 // NewApp creates a new clic app from the provided JSON specification.
@@ -25,64 +25,24 @@ func NewApp(specification []byte) (*App, error) {
 	return newAppFromSpec(appSpec)
 }
 
-// Run runs the clic app.
+// Run runs the clic app with the provided arguments.
 func (app App) Run(args []string) error {
-	arguments := append([]string{app.spec.Name}, args...)
-	return app.cliApp.Run(arguments)
+	app.rootCmd.SetArgs(args)
+	return app.rootCmd.Execute()
 }
 
-// NewApp creates a new clic app from the provided specification
+// newAppFromSpec creates a new clic app from the provided specification.
 func newAppFromSpec(appSpec *spec.App) (*App, error) {
-	cliApp := &cli.App{
-		Name:                  appSpec.Name,
-		HelpName:              appSpec.Name,
-		Usage:                 appSpec.Description,
-		Commands:              make([]*cli.Command, 0),
-		HideHelp:              true,
-		CustomAppHelpTemplate: AppHelpTemplate(),
+	rootCmd := &cobra.Command{
+		Use:           appSpec.Name,
+		Short:         appSpec.Description,
+		SilenceUsage:  true,
+		SilenceErrors: false,
 	}
 
 	for _, commandSpec := range appSpec.Commands {
-		cliCmd := commandSpec.CLICommand()
-		cliCmd.CustomHelpTemplate = CommandHelpTemplate()
-		cliApp.Commands = append(cliApp.Commands, cliCmd)
+		rootCmd.AddCommand(commandSpec.CLICommand())
 	}
 
-	return &App{cliApp: cliApp, spec: appSpec}, nil
-}
-
-// AppHelpTemplate defines the layout of app help.
-func AppHelpTemplate() string {
-	return `{{.Name}}{{if .Usage}} - {{.Usage}}{{end}}
-
-usage:
-	{{if .UsageText}}{{.UsageText}}{{else}}{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
-
-version {{.Version}}{{end}}{{end}}{{if .VisibleCommands}}
- 
-commands:{{range .VisibleCategories}}{{if .Name}}
-	{{.Name}}:{{range .VisibleCommands}}
-	  {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{else}}{{range .VisibleCommands}}
-	{{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
-
-global options:
-	{{range $index, $option := .VisibleFlags}}{{if $index}}
-	{{end}}{{$option}}{{end}}{{end}}
-`
-}
-
-// CommandHelpTemplate defines the layout of command help.
-func CommandHelpTemplate() string {
-	return `{{.HelpName}} - {{.Usage}}
-
-usage:
-	{{if .UsageText}}{{.UsageText}}{{else}}{{.HelpName}}{{if .VisibleFlags}} [options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}{{end}}{{if .Category}}
-
-description:
-	{{.Description}}{{end}}{{if .VisibleFlags}}
-
-options:
-	{{range .VisibleFlags}}{{.}}
-	{{end}}{{end}}
-`
+	return &App{rootCmd: rootCmd, spec: appSpec}, nil
 }

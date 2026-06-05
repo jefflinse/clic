@@ -2,7 +2,7 @@ package noop
 
 import (
 	"github.com/jefflinse/clic/provider"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 // Spec describes the provider.
@@ -15,29 +15,19 @@ func New(v any) (provider.Provider, error) {
 	return &Spec{}, nil
 }
 
-// ArgsUsage returns usage text for the arguments.
-func (s Spec) ArgsUsage() string {
-	return ""
-}
-
-// CLIActionFn creates a CLI action function.
-func (s Spec) CLIActionFn() cli.ActionFunc {
-	return func(ctx *cli.Context) error {
+// Configure wires up the command's run behavior.
+func (s *Spec) Configure(cmd *cobra.Command) {
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 }
 
-// CLIFlags creates a set of CLI flags.
-func (s Spec) CLIFlags() []cli.Flag {
-	return nil
-}
-
 // Type returns the type.
-func (s Spec) Type() string {
+func (s *Spec) Type() string {
 	return "noop"
 }
 
 // Validate validates the provider.
-func (s Spec) Validate() error {
+func (s *Spec) Validate() error {
 	return nil
 }

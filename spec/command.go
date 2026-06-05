@@ -11,7 +11,7 @@ import (
 	"github.com/jefflinse/clic/provider/lambda"
 	"github.com/jefflinse/clic/provider/noop"
 	"github.com/jefflinse/clic/provider/rest"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 // A Command specifes an action or a set of subcommands.
@@ -57,26 +57,22 @@ func NewCommandSpec(content []byte) (*Command, error) {
 	return command, nil
 }
 
-// CLICommand creates a CLI command for this command.
-func (c *Command) CLICommand() *cli.Command {
-	cliCmd := &cli.Command{
-		Name:            c.Name,
-		Usage:           c.Description,
-		HideHelpCommand: true,
+// CLICommand creates a cobra command for this command.
+func (c *Command) CLICommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   c.Name,
+		Short: c.Description,
 	}
 
 	if len(c.Subcommands) > 0 {
-		cliCmd.Subcommands = []*cli.Command{}
 		for _, subcommand := range c.Subcommands {
-			cliCmd.Subcommands = append(cliCmd.Subcommands, subcommand.CLICommand())
+			cmd.AddCommand(subcommand.CLICommand())
 		}
-	} else {
-		cliCmd.Action = c.Provider.CLIActionFn()
-		cliCmd.ArgsUsage = c.Provider.ArgsUsage()
-		cliCmd.Flags = c.Provider.CLIFlags()
+	} else if c.Provider != nil {
+		c.Provider.Configure(cmd)
 	}
 
-	return cliCmd
+	return cmd
 }
 
 // UnmarshalJSON unmarshals the specified JSON data into the command.
