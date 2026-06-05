@@ -84,6 +84,11 @@ func (c *compiler) commandPath(path, method string) (groupPath []string, verb st
 	segments := splitPath(path)
 	nonParam := nonParamSegments(segments)
 
+	if len(segments) == 0 {
+		// root path "/" -> a top-level command named by the method verb
+		return nil, collectionVerb(method)
+	}
+
 	if isParam(segments[len(segments)-1]) {
 		// item operation, e.g. GET /users/{id} -> users get <id>
 		return nonParam, c.itemVerb(path, method)
@@ -239,7 +244,39 @@ func (g *group) commands() []*spec.Command {
 	}
 
 	sort.SliceStable(cmds, func(i, j int) bool { return cmds[i].Name < cmds[j].Name })
+	uniquifyNames(cmds)
 	return cmds
+}
+
+// uniquifyNames renames any commands that share a name within a group so the
+// resulting command tree has no collisions. Colliding rest commands prefer a
+// method suffix (e.g. create-post); anything still ambiguous gets a numeric one.
+func uniquifyNames(cmds []*spec.Command) {
+	used := map[string]bool{}
+	for _, cmd := range cmds {
+		if !used[cmd.Name] {
+			used[cmd.Name] = true
+			continue
+		}
+
+		base := cmd.Name
+		if r, ok := cmd.Provider.(*rest.Spec); ok && r != nil {
+			if candidate := base + "-" + strings.ToLower(r.Method); !used[candidate] {
+				cmd.Name = candidate
+				used[candidate] = true
+				continue
+			}
+		}
+
+		for i := 2; ; i++ {
+			candidate := fmt.Sprintf("%s-%d", base, i)
+			if !used[candidate] {
+				cmd.Name = candidate
+				used[candidate] = true
+				break
+			}
+		}
+	}
 }
 
 func appName(doc *openapi3.T) string {

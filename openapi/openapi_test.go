@@ -210,3 +210,51 @@ func TestCompile_RejectsSwagger2(t *testing.T) {
 	_, err := openapi.Compile([]byte(`{"swagger":"2.0","info":{"title":"x"}}`))
 	assert.Error(t, err)
 }
+
+func TestCompile_RootPath(t *testing.T) {
+	// a "/" path produces zero segments; it must not panic
+	doc := `
+openapi: 3.0.0
+info: {title: Root API}
+paths:
+  /:
+    get:
+      summary: api root
+`
+	app, err := openapi.Compile([]byte(doc))
+	require.NoError(t, err)
+	require.NoError(t, app.Validate())
+	require.NotNil(t, find(app.Commands, "list"))
+}
+
+func TestCompile_NameCollision(t *testing.T) {
+	// POST /pet and POST /pet/{id} both map to "create"; names must be unique
+	doc := `
+openapi: 3.0.0
+info: {title: Pets}
+paths:
+  /pet:
+    post:
+      summary: add a pet
+  /pet/{id}:
+    post:
+      summary: update a pet via form
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+`
+	app, err := openapi.Compile([]byte(doc))
+	require.NoError(t, err)
+	require.NoError(t, app.Validate())
+
+	pet := find(app.Commands, "pet")
+	require.NotNil(t, pet)
+
+	names := map[string]int{}
+	for _, c := range pet.Subcommands {
+		names[c.Name]++
+	}
+	for name, count := range names {
+		assert.Equal(t, 1, count, "command %q should be unique", name)
+	}
+	assert.Len(t, pet.Subcommands, 2)
+}
