@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -53,7 +53,7 @@ func register(hmCtx *cli.Context) error {
 		return fmt.Errorf("invalid file path: %w", err)
 	}
 
-	content, err := ioutil.ReadFile(absPath)
+	content, err := os.ReadFile(absPath)
 	if err != nil {
 		return fmt.Errorf("failed to read spec file: %w", err)
 	}

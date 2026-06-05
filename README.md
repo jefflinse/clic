@@ -1,6 +1,6 @@
 # Handyman
 
-![build status](https://img.shields.io/github/workflow/status/jefflinse/handyman/CI) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/handyman) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/handyman)
+![build status](https://img.shields.io/github/actions/workflow/status/jefflinse/handyman/main-ci.yml?branch=main) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/handyman) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/handyman)
 
 Handyman is a tools that allow you to quickly define, generate, and run custom CLI tools using simple text-based configuration files.
 

@@ -3,11 +3,11 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
-	goioutil "io/ioutil"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -16,12 +16,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const (
-	// Template for main.go that gets stamped and compiled as the native binary.
-	codegenTemplateFile = "codegen/main.template"
-)
-
-var codePath string
+// codegenTemplate is the main.go source that gets stamped and compiled as the native
+// binary. It's embedded into the hm binary so that builds work from any directory.
+//
+//go:embed codegen/main.template
+var codegenTemplate string
 
 func build(hmCtx *cli.Context) error {
 	if hmCtx.NArg() != 1 {
@@ -33,7 +32,7 @@ func build(hmCtx *cli.Context) error {
 		return fmt.Errorf("file not found")
 	}
 
-	data, err := goioutil.ReadFile(specFilePath)
+	data, err := os.ReadFile(specFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read spec: %w", err)
 	}
@@ -55,19 +54,13 @@ func build(hmCtx *cli.Context) error {
 }
 
 func generateAppBinary(name string, specData []byte) error {
-	var err error
-
-	codePath, err = goioutil.TempDir("", fmt.Sprint("handyman-", name, "-"))
+	codePath, err := os.MkdirTemp("", fmt.Sprint("handyman-", name, "-"))
 	if err != nil {
 		return err
 	}
+	defer os.RemoveAll(codePath)
 
-	code, err := goioutil.ReadFile(codegenTemplateFile)
-	if err != nil {
-		return err
-	}
-
-	tpl, err := template.New("main").Parse(string(code))
+	tpl, err := template.New("main").Parse(codegenTemplate)
 	if err != nil {
 		return err
 	}
@@ -78,44 +71,39 @@ func generateAppBinary(name string, specData []byte) error {
 		return err
 	}
 
-	if err := goioutil.WriteFile(path.Join(codePath, "main.go"), []byte(b.String()), 0777); err != nil {
+	if err := os.WriteFile(filepath.Join(codePath, "main.go"), []byte(b.String()), 0644); err != nil {
 		return err
 	}
 
-	appPath, _ := os.Getwd()
-
-	// go mod init
-	if err := runBashCmd(fmt.Sprintf(`go mod init %s`, name)); err != nil {
+	appPath, err := os.Getwd()
+	if err != nil {
 		return err
 	}
 
-	// go get
-	if err := runBashCmd(`go get`); err != nil {
-		return err
+	steps := []string{
+		fmt.Sprintf("go mod init %s", name),
+		"go mod tidy",
+		fmt.Sprintf("go build -o %s", filepath.Join(appPath, name)),
 	}
-
-	// go build
-	if err := runBashCmd(fmt.Sprintf(`go build -o %s/%s`, appPath, name)); err != nil {
-		return err
-	}
-
-	if err := os.RemoveAll(codePath); err != nil {
-		return err
+	for _, step := range steps {
+		if err := runBashCmd(codePath, step); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func runBashCmd(name string) error {
+func runBashCmd(dir, name string) error {
 	stderr := strings.Builder{}
-	bashCmd := fmt.Sprintf("cd %s && %s", codePath, name)
-	command := exec.Command("/bin/bash", "-c", bashCmd)
+	command := exec.Command("/bin/bash", "-c", name)
+	command.Dir = dir
 	command.Env = os.Environ()
 	command.Stdout = os.Stdout
 	command.Stderr = &stderr
 
 	if err := command.Run(); err != nil {
-		fmt.Fprint(os.Stderr, stderr.String())
+		return fmt.Errorf("%q failed: %w\n%s", name, err, stderr.String())
 	}
 
 	return nil

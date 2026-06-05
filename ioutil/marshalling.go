@@ -8,7 +8,7 @@ import (
 )
 
 // Intermarshal marshals an object of unknown type to JSON and then unmarshals it into the target type.
-func Intermarshal(source interface{}, target interface{}) error {
+func Intermarshal(source any, target any) error {
 	data, err := json.Marshal(source)
 	if err != nil {
 		return err
@@ -22,7 +22,7 @@ func Intermarshal(source interface{}, target interface{}) error {
 }
 
 // Unmarshal unmarshals the supplied JSON or YAML into the target.
-func Unmarshal(data []byte, target interface{}) error {
+func Unmarshal(data []byte, target any) error {
 	if len(data) == 0 {
 		return fmt.Errorf("empty data encountered")
 	}

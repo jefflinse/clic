@@ -20,12 +20,12 @@ type Spec struct {
 }
 
 // New creates a new provider.
-func New(v interface{}) (provider.Provider, error) {
+func New(v any) (provider.Provider, error) {
 	s := Spec{}
 	return &s, ioutil.Intermarshal(v, &s)
 }
 
-// CLIActionFn creates a CLI action fuction.
+// CLIActionFn creates a CLI action function.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
 		name, args, err := s.parameterizedNameAndArgs(ctx)

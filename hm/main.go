@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	goioutil "io/ioutil"
 	"os"
 
 	"github.com/jefflinse/handyman"
@@ -122,7 +121,7 @@ func run(hmCtx *cli.Context) error {
 		}
 	}
 
-	content, err := goioutil.ReadFile(specFile)
+	content, err := os.ReadFile(specFile)
 	if err != nil {
 		return fmt.Errorf("failed to read spec file: %w", err)
 	}
@@ -135,7 +134,7 @@ func run(hmCtx *cli.Context) error {
 	// join the runner binary and spec filename into
 	// a single string to be used as arg[0] of the app
 	if err := app.Run(hmCtx.Args().Tail()); err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
@@ -147,7 +146,7 @@ func validate(hmCtx *cli.Context) error {
 		cli.ShowCommandHelpAndExit(hmCtx, "validate", 1)
 	}
 
-	content, err := goioutil.ReadFile(hmCtx.Args().First())
+	content, err := os.ReadFile(hmCtx.Args().First())
 	if err != nil {
 		return fmt.Errorf("failed to read spec file: %w", err)
 	}

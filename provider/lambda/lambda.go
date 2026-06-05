@@ -1,14 +1,15 @@
 package lambda
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/jefflinse/handyman/ioutil"
 	"github.com/jefflinse/handyman/provider"
 	"github.com/urfave/cli/v2"
@@ -21,7 +22,7 @@ type Spec struct {
 }
 
 // New creates a new provider.
-func New(v interface{}) (provider.Provider, error) {
+func New(v any) (provider.Provider, error) {
 	s := Spec{}
 	return &s, ioutil.Intermarshal(v, &s)
 }
@@ -38,7 +39,7 @@ func (s Spec) ArgsUsage() string {
 	return strings.Join(argNames, " ")
 }
 
-// CLIActionFn creates a CLI action fuction.
+// CLIActionFn creates a CLI action function.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
 		request, err := s.parameterizedRequest(ctx)
@@ -47,7 +48,7 @@ func (s Spec) CLIActionFn() cli.ActionFunc {
 			cli.ShowCommandHelpAndExit(ctx, ctx.Command.Name, 1)
 		}
 
-		response, functionError, err := executeLambda(s.ARN, request)
+		response, functionError, err := executeLambda(ctx.Context, s.ARN, request)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			return err
@@ -82,12 +83,12 @@ func (s Spec) Validate() error {
 	return nil
 }
 
-func (s *Spec) parameterizedRequest(ctx *cli.Context) (map[string]interface{}, error) {
+func (s *Spec) parameterizedRequest(ctx *cli.Context) (map[string]any, error) {
 	if err := s.RequestParams.ResolveValues(ctx); err != nil {
 		return nil, err
 	}
 
-	request := map[string]interface{}{}
+	request := map[string]any{}
 	for _, param := range s.RequestParams {
 		request[param.Name] = param.Value()
 	}
@@ -96,19 +97,20 @@ func (s *Spec) parameterizedRequest(ctx *cli.Context) (map[string]interface{}, e
 }
 
 // Executes the AWS Lambda function specified by an ARN, passing the specified payload, if any.
-func executeLambda(arn string, request interface{}) ([]byte, *string, error) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
+func executeLambda(ctx context.Context, arn string, request any) ([]byte, *string, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	client := lambda.New(sess)
+	client := lambda.NewFromConfig(cfg)
 
 	payload, err := json.Marshal(request)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	result, err := client.Invoke(&lambda.InvokeInput{FunctionName: aws.String(arn), Payload: payload})
+	result, err := client.Invoke(ctx, &lambda.InvokeInput{FunctionName: aws.String(arn), Payload: payload})
 	if err != nil {
 		return nil, nil, err
 	}

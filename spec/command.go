@@ -22,14 +22,14 @@ type Command struct {
 	Subcommands []*Command        `json:"subcommands,omitempty" yaml:"subcommands,omitempty"`
 }
 
-type contentUnmarshaler func(data []byte, target interface{}) error
+type contentUnmarshaler func(data []byte, target any) error
 
 var requiredCommandFields = []string{
 	"name",
 	"description",
 }
 
-var commandMap = map[string]func(interface{}) (provider.Provider, error){
+var commandMap = map[string]func(any) (provider.Provider, error){
 	"exec":   exec.New,
 	"lambda": lambda.New,
 	"noop":   noop.New,
@@ -119,7 +119,7 @@ func NewInvalidCommandSpecError(reason string) error {
 	return fmt.Errorf("invalid command spec: %s", reason)
 }
 
-func (c *Command) unmarshalContent(unmarshaler func(d []byte, target interface{}) error, data []byte) error {
+func (c *Command) unmarshalContent(unmarshaler contentUnmarshaler, data []byte) error {
 	type commandMetadata struct {
 		Name        string `json:"name"        yaml:"name"`
 		Description string `json:"description" yaml:"description"`
@@ -133,7 +133,7 @@ func (c *Command) unmarshalContent(unmarshaler func(d []byte, target interface{}
 	c.Name = metadata.Name
 	c.Description = metadata.Description
 
-	content := map[string]interface{}{}
+	content := map[string]any{}
 	if err := unmarshaler(data, &content); err != nil {
 		return err
 	}
@@ -154,9 +154,9 @@ func (c *Command) unmarshalContent(unmarshaler func(d []byte, target interface{}
 
 			if !isRequiredField {
 				if key == "subcommands" {
-					subcommands, ok := content[key].([]interface{})
+					subcommands, ok := content[key].([]any)
 					if !ok {
-						return fmt.Errorf("cannot coerce subcommands to []interface{}")
+						return fmt.Errorf("cannot coerce subcommands to []any")
 					}
 
 					for _, data := range subcommands {

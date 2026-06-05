@@ -2,11 +2,11 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	goioutil "io/ioutil"
+	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -26,7 +26,7 @@ type Spec struct {
 }
 
 // New creates a new provider.
-func New(v interface{}) (provider.Provider, error) {
+func New(v any) (provider.Provider, error) {
 	s := Spec{}
 	return &s, ioutil.Intermarshal(v, &s)
 }
@@ -43,10 +43,10 @@ func (s Spec) ArgsUsage() string {
 	return strings.Join(argNames, " ")
 }
 
-// CLIActionFn creates a CLI action fuction.
+// CLIActionFn creates a CLI action function.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		req, err := s.parameterizedRequest(ctx)
+		req, err := s.parameterizedRequest(ctx.Context, ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n\n", err)
 			cli.ShowCommandHelpAndExit(ctx, ctx.Command.Name, 1)
@@ -93,38 +93,10 @@ func (s *Spec) allParams() provider.ParameterSet {
 	return append(append(provider.ParameterSet{}, s.QueryParams...), s.BodyParams...)
 }
 
-func (s *Spec) parameterizedRequest(ctx *cli.Context) (*http.Request, error) {
-	url, err := url.Parse(s.Endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("invalid endpoint '%s': %w", s.Endpoint, err)
-	}
-
-	req := &http.Request{
-		Method: s.Method,
-		URL:    url,
-	}
-
-	req.Header = http.Header{"Content-Type": {"application/json"}}
-	for name, value := range s.Headers {
-		req.Header.Set(name, value)
-	}
-
-	if len(s.QueryParams) > 0 {
-		if err := s.QueryParams.ResolveValues(ctx); err != nil {
-			return nil, err
-		}
-
-		query := req.URL.Query()
-		for _, param := range s.QueryParams {
-			query.Add(param.Name, fmt.Sprintf("%v", param.Value()))
-		}
-
-		req.URL.RawQuery = query.Encode()
-	}
-
-	body := map[string]interface{}{}
+func (s *Spec) parameterizedRequest(ctx context.Context, cliCtx *cli.Context) (*http.Request, error) {
+	body := map[string]any{}
 	if len(s.BodyParams) > 0 {
-		if err := s.BodyParams.ResolveValues(ctx); err != nil {
+		if err := s.BodyParams.ResolveValues(cliCtx); err != nil {
 			return nil, err
 		}
 
@@ -138,7 +110,28 @@ func (s *Spec) parameterizedRequest(ctx *cli.Context) (*http.Request, error) {
 		return nil, err
 	}
 
-	req.Body = goioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, s.Method, s.Endpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("invalid endpoint '%s': %w", s.Endpoint, err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	for name, value := range s.Headers {
+		req.Header.Set(name, value)
+	}
+
+	if len(s.QueryParams) > 0 {
+		if err := s.QueryParams.ResolveValues(cliCtx); err != nil {
+			return nil, err
+		}
+
+		query := req.URL.Query()
+		for _, param := range s.QueryParams {
+			query.Add(param.Name, fmt.Sprintf("%v", param.Value()))
+		}
+
+		req.URL.RawQuery = query.Encode()
+	}
 
 	return req, nil
 }
@@ -152,7 +145,7 @@ func doRequest(req *http.Request) (int, []byte, error) {
 	}
 
 	defer resp.Body.Close()
-	body, err := goioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, nil, err
 	}

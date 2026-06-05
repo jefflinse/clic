@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	goioutil "io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -26,7 +25,7 @@ func Load() (Registry, error) {
 		return nil, err
 	}
 
-	content, err := goioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +111,7 @@ func (r Registry) Save() error {
 		return err
 	}
 
-	return goioutil.WriteFile(file, []byte(builder.String()), 0644)
+	return os.WriteFile(file, []byte(builder.String()), 0644)
 }
 
 func ensureRegistryFileExists(name string) error {

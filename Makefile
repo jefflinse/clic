@@ -34,7 +34,8 @@ VERSION   := $(git_tag)-$(git_rev)-$(timestamp)
 endif
 
 clean:
-	go clean -i -testcache ./...
+	go clean -i ./...
+	go clean -testcache
 	rm -rf $(bin_root)
 	rm -rf $(dist_dir)
 	rm -f $(coverage_profile) $(coverage_report)
@@ -45,7 +46,7 @@ package: $(hm_tarball)
 
 test: $(coverage_profile)
 
-coverage: $(coverage_repkort)
+coverage: $(coverage_report)
 	cat $(coverage_report)
 
 coverage-html: $(coverage_profile)

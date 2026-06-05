@@ -10,17 +10,17 @@ type Spec struct {
 }
 
 // New creates a new provider.
-func New(v interface{}) (provider.Provider, error) {
+func New(v any) (provider.Provider, error) {
 	// all properties on a noop command are ignored
 	return &Spec{}, nil
 }
 
 // ArgsUsage returns usage text for the arguments.
 func (s Spec) ArgsUsage() string {
-	return "fooo"
+	return ""
 }
 
-// CLIActionFn creates a CLI action fuction.
+// CLIActionFn creates a CLI action function.
 func (s Spec) CLIActionFn() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
 		return nil
