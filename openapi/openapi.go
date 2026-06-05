@@ -169,6 +169,7 @@ func (c *compiler) command(verb, base, path, method string, item *openapi3.PathI
 		Endpoint: path,
 		Method:   strings.ToUpper(method),
 		RawBody:  op.RequestBody != nil,
+		Body:     BodyFields(requestBodySchema(op.RequestBody)),
 	}
 
 	// path-item parameters apply to every operation; operation parameters override

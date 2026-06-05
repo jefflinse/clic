@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jefflinse/clic/form"
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/jefflinse/clic/provider"
 	"github.com/spf13/cobra"
@@ -26,6 +27,7 @@ type Spec struct {
 	HeaderParams provider.ParameterSet `json:"header_params,omitempty" yaml:"header_params,omitempty"`
 	BodyParams   provider.ParameterSet `json:"body_params,omitempty"   yaml:"body_params,omitempty"`
 	RawBody      bool                  `json:"raw_body,omitempty"      yaml:"raw_body,omitempty"`
+	Body         []form.Field          `json:"body,omitempty"          yaml:"body,omitempty"`
 	PrintStatus  bool                  `json:"print_status,omitempty"  yaml:"print_status,omitempty"`
 }
 
