@@ -13,6 +13,7 @@ import (
 	"github.com/jefflinse/clic/form"
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/jefflinse/clic/provider"
+	"github.com/jefflinse/clic/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -168,17 +169,32 @@ func (s *Spec) effectiveEndpoint(cmd *cobra.Command) string {
 func (s *Spec) requestBody(cmd *cobra.Command) (io.Reader, error) {
 	if s.RawBody {
 		raw, _ := cmd.Flags().GetString(bodyFlagName)
-		if raw == "" {
-			return http.NoBody, nil
-		}
-		if path, ok := strings.CutPrefix(raw, "@"); ok {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read body file: %w", err)
+		if raw != "" {
+			if path, ok := strings.CutPrefix(raw, "@"); ok {
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read body file: %w", err)
+				}
+				return bytes.NewReader(content), nil
 			}
-			return bytes.NewReader(content), nil
+			return strings.NewReader(raw), nil
 		}
-		return strings.NewReader(raw), nil
+
+		// no raw body supplied: offer an interactive form when the user opted
+		// in and we have a schema to drive it
+		if provider.Interactive(cmd) && len(s.Body) > 0 {
+			values, err := tui.PromptBody(s.Body)
+			if err != nil {
+				return nil, err
+			}
+			bodyBytes, err := json.Marshal(values)
+			if err != nil {
+				return nil, err
+			}
+			return bytes.NewReader(bodyBytes), nil
+		}
+
+		return http.NoBody, nil
 	}
 
 	s.BodyParams.ResolveFromFlags(cmd)

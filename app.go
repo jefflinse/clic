@@ -61,6 +61,7 @@ func newAppFromSpec(appSpec *spec.App) (*App, error) {
 	if appSpec.Auth != nil {
 		appSpec.Auth.RegisterFlags(rootCmd)
 	}
+	provider.RegisterInteractiveFlag(rootCmd)
 
 	for _, commandSpec := range appSpec.Commands {
 		rootCmd.AddCommand(commandSpec.CLICommand())
