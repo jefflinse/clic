@@ -1,5 +1,5 @@
 name: example-subcommands
-description: an example of a Handyman app with subcommands
+description: an example of a clic app with subcommands
 commands:
   - name: do
     description: prints a message

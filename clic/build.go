@@ -1,4 +1,4 @@
-// The compiler isn't a true compiler; it just takes a Handyman spec, generates a Go
+// The compiler isn't a true compiler; it just takes a clic spec, generates a Go
 // source file with the spec contents statically defined, and compiles it into a Go binary.
 package main
 
@@ -11,13 +11,13 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/jefflinse/handyman/ioutil"
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/spec"
 	"github.com/urfave/cli/v2"
 )
 
 // codegenTemplate is the main.go source that gets stamped and compiled as the native
-// binary. It's embedded into the hm binary so that builds work from any directory.
+// binary. It's embedded into the clic binary so that builds work from any directory.
 //
 //go:embed codegen/main.template
 var codegenTemplate string
@@ -54,7 +54,7 @@ func build(hmCtx *cli.Context) error {
 }
 
 func generateAppBinary(name string, specData []byte) error {
-	codePath, err := os.MkdirTemp("", fmt.Sprint("handyman-", name, "-"))
+	codePath, err := os.MkdirTemp("", fmt.Sprint("clic-", name, "-"))
 	if err != nil {
 		return err
 	}

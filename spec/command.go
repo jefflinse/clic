@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/goccy/go-yaml"
-	"github.com/jefflinse/handyman/ioutil"
-	"github.com/jefflinse/handyman/provider"
-	"github.com/jefflinse/handyman/provider/exec"
-	"github.com/jefflinse/handyman/provider/lambda"
-	"github.com/jefflinse/handyman/provider/noop"
-	"github.com/jefflinse/handyman/provider/rest"
+	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/provider"
+	"github.com/jefflinse/clic/provider/exec"
+	"github.com/jefflinse/clic/provider/lambda"
+	"github.com/jefflinse/clic/provider/noop"
+	"github.com/jefflinse/clic/provider/rest"
 	"github.com/urfave/cli/v2"
 )
 

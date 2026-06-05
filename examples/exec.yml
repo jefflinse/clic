@@ -1,5 +1,5 @@
 name: my-exec-app
-description: an example of a Handyman app with exec commands
+description: an example of a clic app with exec commands
 commands:
   - name: say
     description: prints a message

@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/jefflinse/handyman/ioutil"
-	"github.com/jefflinse/handyman/provider"
+	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/provider"
 	"github.com/urfave/cli/v2"
 )
 

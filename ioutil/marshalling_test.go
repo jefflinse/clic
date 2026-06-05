@@ -3,7 +3,7 @@ package ioutil_test
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman/ioutil"
+	"github.com/jefflinse/clic/ioutil"
 	"github.com/stretchr/testify/assert"
 )
 

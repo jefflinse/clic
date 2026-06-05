@@ -1,9 +1,9 @@
-package handyman_test
+package clic_test
 
 import (
 	"testing"
 
-	"github.com/jefflinse/handyman"
+	"github.com/jefflinse/clic"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +37,7 @@ func TestNewApp(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			app, err := handyman.NewApp([]byte(test.json))
+			app, err := clic.NewApp([]byte(test.json))
 			if test.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, app)
@@ -50,7 +50,7 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestApp_Run(t *testing.T) {
-	app, err := handyman.NewApp([]byte(`{"name":"app","description":"the app"}`))
+	app, err := clic.NewApp([]byte(`{"name":"app","description":"the app"}`))
 	assert.NoError(t, err)
 	assert.NoError(t, app.Run([]string{}))
 }

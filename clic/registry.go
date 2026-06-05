@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jefflinse/handyman/registry"
-	"github.com/jefflinse/handyman/spec"
+	"github.com/jefflinse/clic/registry"
+	"github.com/jefflinse/clic/spec"
 	"github.com/urfave/cli/v2"
 )
 

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jefflinse/handyman"
+	"github.com/jefflinse/clic"
 )
 
 func main() {
-	app, err := handyman.NewApp([]byte(`{{.SpecData}}`))
+	app, err := clic.NewApp([]byte(`{{.SpecData}}`))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "handyman: failed to instantiate app: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "clic: failed to instantiate app: %s", err.Error())
 		os.Exit(1)
 	}
 

@@ -1,7 +1,7 @@
 package noop
 
 import (
-	"github.com/jefflinse/handyman/provider"
+	"github.com/jefflinse/clic/provider"
 	"github.com/urfave/cli/v2"
 )
 
