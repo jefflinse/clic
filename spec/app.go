@@ -5,13 +5,16 @@ import (
 	"fmt"
 
 	"github.com/goccy/go-yaml"
+	"github.com/jefflinse/clic/provider"
 )
 
 // An App specifies a complete clic application.
 type App struct {
-	Name        string     `json:"name"        yaml:"name"`
-	Description string     `json:"description" yaml:"description"`
-	Commands    []*Command `json:"commands"    yaml:"commands"`
+	Name        string               `json:"name"             yaml:"name"`
+	Description string               `json:"description"      yaml:"description"`
+	Server      string               `json:"server,omitempty" yaml:"server,omitempty"`
+	Auth        *provider.AuthScheme `json:"auth,omitempty"   yaml:"auth,omitempty"`
+	Commands    []*Command           `json:"commands"         yaml:"commands"`
 }
 
 // NewAppSpec creates a new App from the provided spec.

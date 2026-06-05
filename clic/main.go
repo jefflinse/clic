@@ -7,6 +7,7 @@ import (
 	"github.com/jefflinse/clic"
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/jefflinse/clic/registry"
+	"github.com/jefflinse/clic/source"
 	"github.com/jefflinse/clic/spec"
 	"github.com/spf13/cobra"
 )
@@ -22,16 +23,28 @@ func main() {
 
 func rootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "clic",
+		Use:           "clic [spec] [args...]",
 		Short:         "the clic CLI",
 		Version:       Version,
+		Args:          cobra.ArbitraryArgs,
 		SilenceUsage:  true,
 		SilenceErrors: false,
+		// auto-mode: `clic <spec> [args...]` detects the format and runs it
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+			return runSpec(args, spec.FormatUnknown)
+		},
 	}
+
+	// stop parsing flags after the spec so the rest pass through to the app
+	root.Flags().SetInterspersed(false)
 
 	root.AddCommand(
 		buildCmd(),
 		runCmd(),
+		convertCmd(),
 		validateCmd(),
 		registerCmd(),
 		unregisterCmd(),
@@ -45,25 +58,45 @@ func rootCmd() *cobra.Command {
 
 func runCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run <specfile> [args...]",
-		Short: "directly run a clic spec",
+		Use:   "run <spec> [args...]",
+		Short: "run a clic or OpenAPI spec directly",
 		Args:  cobra.MinimumNArgs(1),
-		RunE:  run,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSpec(args, forceFormat(cmd))
+		},
 	}
 
-	// stop parsing flags after the spec file so the rest are passed through to the app
+	addFormatFlags(cmd)
+	// stop parsing flags after the spec so the rest pass through to the app
 	cmd.Flags().SetInterspersed(false)
 
 	return cmd
 }
 
+func convertCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "convert <spec>",
+		Short: "compile a spec (e.g. OpenAPI) to a clic spec",
+		Args:  cobra.ExactArgs(1),
+		RunE:  convert,
+	}
+
+	addFormatFlags(cmd)
+	cmd.Flags().StringP("output", "o", "", "write the clic spec to a file instead of stdout")
+
+	return cmd
+}
+
 func validateCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "validate <specfile>",
-		Short: "validate a clic spec",
+	cmd := &cobra.Command{
+		Use:   "validate <spec>",
+		Short: "validate a clic or OpenAPI spec",
 		Args:  cobra.ExactArgs(1),
 		RunE:  validate,
 	}
+
+	addFormatFlags(cmd)
+	return cmd
 }
 
 func versionCmd() *cobra.Command {
@@ -78,29 +111,14 @@ func versionCmd() *cobra.Command {
 	}
 }
 
-func run(cmd *cobra.Command, args []string) error {
-	specFile := args[0]
-	if !ioutil.FileExists(specFile) {
-		// spec file not found, check the registry
-		appName := args[0]
-		reg, err := registry.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load registry: %w", err)
-		}
-
-		if path, ok := reg[appName]; ok {
-			specFile = path
-		} else {
-			return fmt.Errorf("'%s' is not a valid spec file path or registered app name", appName)
-		}
-	}
-
-	content, err := os.ReadFile(specFile)
+// runSpec loads the spec at args[0] and runs it, passing args[1:] to the app.
+func runSpec(args []string, force spec.Format) error {
+	appSpec, err := clic.LoadSpec(resolveLocation(args[0]), force)
 	if err != nil {
-		return fmt.Errorf("failed to read spec file: %w", err)
+		return err
 	}
 
-	app, err := clic.NewApp(content)
+	app, err := clic.NewAppFromSpec(appSpec)
 	if err != nil {
 		return fmt.Errorf("failed to create app: %w", err)
 	}
@@ -114,19 +132,41 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 func validate(cmd *cobra.Command, args []string) error {
-	content, err := os.ReadFile(args[0])
+	appSpec, err := clic.LoadSpec(resolveLocation(args[0]), forceFormat(cmd))
 	if err != nil {
-		return fmt.Errorf("failed to read spec file: %w", err)
-	}
-
-	appSpec, err := spec.NewAppSpec(content)
-	if err != nil {
-		return fmt.Errorf("failed to parse spec file: %w", err)
-	}
-
-	if err := appSpec.Validate(); err != nil {
 		return err
 	}
 
-	return nil
+	return appSpec.Validate()
+}
+
+// resolveLocation maps a spec argument to a loadable location, falling back to
+// the registry when it is neither a URL nor an existing file.
+func resolveLocation(location string) string {
+	if source.IsURL(location) || ioutil.FileExists(location) {
+		return location
+	}
+
+	if reg, err := registry.Load(); err == nil {
+		if path, ok := reg[location]; ok {
+			return path
+		}
+	}
+
+	return location
+}
+
+func addFormatFlags(cmd *cobra.Command) {
+	cmd.Flags().Bool("openapi", false, "force interpreting the spec as OpenAPI")
+	cmd.Flags().Bool("spec", false, "force interpreting the spec as a clic spec")
+}
+
+func forceFormat(cmd *cobra.Command) spec.Format {
+	if openapi, _ := cmd.Flags().GetBool("openapi"); openapi {
+		return spec.FormatOpenAPI
+	}
+	if clicFormat, _ := cmd.Flags().GetBool("spec"); clicFormat {
+		return spec.FormatClic
+	}
+	return spec.FormatUnknown
 }

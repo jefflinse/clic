@@ -85,6 +85,40 @@ func (c *Command) UnmarshalYAML(data []byte) error {
 	return c.unmarshalContent(yaml.Unmarshal, data)
 }
 
+// MarshalJSON marshals the command to JSON, writing the provider's config under
+// its type key (e.g. "rest") so the result round-trips back through parsing.
+func (c *Command) MarshalJSON() ([]byte, error) {
+	out := map[string]any{
+		"name":        c.Name,
+		"description": c.Description,
+	}
+	if c.Provider != nil {
+		out[c.Provider.Type()] = c.Provider
+	}
+	if len(c.Subcommands) > 0 {
+		out["subcommands"] = c.Subcommands
+	}
+
+	return json.Marshal(out)
+}
+
+// MarshalYAML marshals the command to YAML, writing the provider's config under
+// its type key (e.g. "rest") in a stable, human-friendly field order.
+func (c *Command) MarshalYAML() (any, error) {
+	out := yaml.MapSlice{
+		{Key: "name", Value: c.Name},
+		{Key: "description", Value: c.Description},
+	}
+	if c.Provider != nil {
+		out = append(out, yaml.MapItem{Key: c.Provider.Type(), Value: c.Provider})
+	}
+	if len(c.Subcommands) > 0 {
+		out = append(out, yaml.MapItem{Key: "subcommands", Value: c.Subcommands})
+	}
+
+	return out, nil
+}
+
 // Validate validates a Command spec.
 func (c *Command) Validate() error {
 	if c.Name == "" {

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/jefflinse/clic/ioutil"
@@ -49,9 +50,11 @@ func NewParameter(content []byte) (*Parameter, error) {
 	return param, nil
 }
 
-// CLIFlagName returns the parameter name formatted as a CLI flag name.
+// CLIFlagName returns the parameter name formatted as a CLI flag name. The
+// original Name is preserved for use as the request key (header/query/body);
+// only the flag spelling is normalized to lower-kebab-case.
 func (param *Parameter) CLIFlagName() string {
-	return toDashes(param.Name)
+	return strings.ToLower(toDashes(param.Name))
 }
 
 // registerFlag registers the parameter as a flag on the given flag set.
@@ -66,6 +69,24 @@ func (param *Parameter) registerFlag(flags *pflag.FlagSet) {
 		flags.Float64(name, 0, usage)
 	case StringParamType:
 		flags.String(name, "", usage)
+	}
+}
+
+// setFromFlag assigns the parameter's value from its corresponding flag.
+func (param *Parameter) setFromFlag(flags *pflag.FlagSet) {
+	switch param.Type {
+	case BoolParamType:
+		value, _ := flags.GetBool(param.CLIFlagName())
+		param.SetValue(value)
+	case IntParamType:
+		value, _ := flags.GetInt(param.CLIFlagName())
+		param.SetValue(value)
+	case NumberParamType:
+		value, _ := flags.GetFloat64(param.CLIFlagName())
+		param.SetValue(value)
+	case StringParamType:
+		value, _ := flags.GetString(param.CLIFlagName())
+		param.SetValue(value)
 	}
 }
 
@@ -250,27 +271,49 @@ func (ps ParameterSet) ResolveValues(cmd *cobra.Command, args []string) error {
 	for _, p := range ps.Optional() {
 		p.SetDefaultValue()
 
-		if !flags.Changed(p.CLIFlagName()) {
-			continue
-		}
-
-		switch p.Type {
-		case BoolParamType:
-			value, _ := flags.GetBool(p.CLIFlagName())
-			p.SetValue(value)
-		case IntParamType:
-			value, _ := flags.GetInt(p.CLIFlagName())
-			p.SetValue(value)
-		case NumberParamType:
-			value, _ := flags.GetFloat64(p.CLIFlagName())
-			p.SetValue(value)
-		case StringParamType:
-			value, _ := flags.GetString(p.CLIFlagName())
-			p.SetValue(value)
+		if flags.Changed(p.CLIFlagName()) {
+			p.setFromFlag(flags)
 		}
 	}
 
 	return nil
+}
+
+// RegisterAsFlags registers every parameter in the set as a flag, marking
+// required parameters as required flags on the command.
+func (ps ParameterSet) RegisterAsFlags(cmd *cobra.Command) {
+	for _, param := range ps {
+		param.registerFlag(cmd.Flags())
+		if param.Required {
+			_ = cmd.MarkFlagRequired(param.CLIFlagName())
+		}
+	}
+}
+
+// ResolveFromFlags assigns every parameter's value from its flag, applying
+// defaults for optional parameters that were not set.
+func (ps ParameterSet) ResolveFromFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+	for _, p := range ps {
+		p.SetDefaultValue()
+
+		if flags.Changed(p.CLIFlagName()) {
+			p.setFromFlag(flags)
+		}
+	}
+}
+
+// InjectPathValues substitutes {name} placeholders in a URL path template with
+// the URL-escaped values of the matching parameters.
+func (ps ParameterSet) InjectPathValues(endpoint string) string {
+	result := endpoint
+	for _, param := range ps {
+		placeholder := "{" + param.Name + "}"
+		value := url.PathEscape(fmt.Sprintf("%v", param.Value()))
+		result = strings.ReplaceAll(result, placeholder, value)
+	}
+
+	return result
 }
 
 // Validate validates the parameter set, returning the first error it encounters, if any.

@@ -4,6 +4,7 @@ package main
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,8 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/jefflinse/clic/ioutil"
-	"github.com/jefflinse/clic/spec"
+	"github.com/jefflinse/clic"
 	"github.com/spf13/cobra"
 )
 
@@ -23,31 +23,31 @@ import (
 var codegenTemplate string
 
 func buildCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "build <specfile>",
-		Short: "bakes a clic spec into a native Go binary",
+	cmd := &cobra.Command{
+		Use:   "build <spec>",
+		Short: "compile a clic or OpenAPI spec into a native Go binary",
 		Args:  cobra.ExactArgs(1),
 		RunE:  build,
 	}
+
+	addFormatFlags(cmd)
+	return cmd
 }
 
 func build(cmd *cobra.Command, args []string) error {
-	specFilePath := args[0]
-	if !ioutil.FileExists(specFilePath) {
-		return fmt.Errorf("file not found")
+	appSpec, err := clic.LoadSpec(resolveLocation(args[0]), forceFormat(cmd))
+	if err != nil {
+		return err
 	}
 
-	data, err := os.ReadFile(specFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to read spec: %w", err)
-	}
-
-	// validate the app spec
-	appSpec, err := spec.NewAppSpec(data)
-	if err != nil {
-		return fmt.Errorf("failed to create app: %w", err)
-	} else if err := appSpec.Validate(); err != nil {
+	if err := appSpec.Validate(); err != nil {
 		return fmt.Errorf("invalid spec: %w", err)
+	}
+
+	// embed the compiled clic spec so the generated binary needs no OpenAPI compiler
+	data, err := json.Marshal(appSpec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal compiled spec: %w", err)
 	}
 
 	// codegen and compilation

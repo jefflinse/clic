@@ -2,7 +2,7 @@
 
 ![build status](https://img.shields.io/github/actions/workflow/status/jefflinse/clic/main-ci.yml?branch=main) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/jefflinse/clic) ![go version](https://img.shields.io/github/go-mod/go-version/jefflinse/clic)
 
-clic lets you quickly define, generate, and run custom CLI tools using simple text-based configuration files.
+clic lets you quickly define, generate, and run custom CLI tools using simple text-based configuration files — or instantly from an existing OpenAPI document.
 
 - [Overview](#overview)
 - [Installation](#installation)
@@ -16,6 +16,7 @@ clic lets you quickly define, generate, and run custom CLI tools using simple te
   - [lambda - execute an AWS lambda function](#lambda)
   - [noop - do nothing](#noop)
   - [rest - make a request to a REST endpoint](#rest)
+- [OpenAPI](#openapi)
 - [Roadmap](#roadmap)
 
 ## Overview
@@ -282,16 +283,77 @@ subcommands:
       args: ["-f", "/tmp"]
 ```
 
+## OpenAPI
+
+clic can turn any OpenAPI 3.x document into a CLI. Internally it *compiles* the OpenAPI spec into a clic spec, then runs or builds that — so everything in this README applies to the result.
+
+Anywhere clic takes a spec, it accepts a local path **or** an `http(s)` URL, and auto-detects whether it's a clic spec or an OpenAPI document:
+
+```bash
+# auto-mode: detect the format and run it, passing trailing args to the app
+$ clic ./petstore.openapi.yaml pets list --limit 10
+$ clic https://api.example.com/openapi.json users get 42
+
+# force a format (errors if the file isn't that format)
+$ clic run --openapi ./api.yaml ...
+$ clic run --spec    ./app.clic.yml ...
+
+# see (and keep) the generated clic spec — edit it, commit it, run it
+$ clic convert ./petstore.openapi.yaml -o petstore.clic.yml
+
+# compile straight to a native binary
+$ clic build ./petstore.openapi.yaml
+```
+
+### How operations map to commands
+
+Paths become nested command groups and the HTTP method picks the verb:
+
+| OpenAPI | clic command |
+| ------- | ------------ |
+| `GET /pets` | `pets list` (alias `ls`) |
+| `POST /pets` | `pets create --body @pet.json` |
+| `GET /pets/{id}` | `pets get <id>` |
+| `PATCH /pets/{id}` | `pets update <id> --body @patch.json` |
+| `PUT /pets/{id}` | `pets update <id>` — or `replace` when a `PATCH` also exists |
+| `DELETE /pets/{id}` | `pets delete <id>` (alias `rm`) |
+| `GET /users/{id}/posts` | `users posts list <id>` |
+| `POST /pets/{id}/vaccinate` | `pets vaccinate <id>` (single, childless action) |
+
+Parameters map as follows:
+
+- **path** parameters → required positional arguments, substituted into the URL
+- **query** and **header** parameters → flags (required ones become required flags)
+- **request body** → `--body` (inline JSON or `@file.json`)
+
+### Server and authentication
+
+The first `servers` entry becomes the default base URL, overridable with a global `--server` flag. Security schemes (everything except OAuth2) surface as global flags, each with a `CLIC_*` environment-variable fallback:
+
+| Scheme | Flag(s) | Env |
+| ------ | ------- | --- |
+| HTTP bearer | `--token` | `CLIC_TOKEN` |
+| HTTP basic | `--username` / `--password` | `CLIC_USERNAME` / `CLIC_PASSWORD` |
+| API key | `--api-key` | `CLIC_API_KEY` |
+
+```bash
+$ clic ./api.yaml --token "$MY_TOKEN" users get 42
+$ CLIC_TOKEN="$MY_TOKEN" clic ./api.yaml users get 42
+```
+
+> **Note:** OpenAPI 3.0 and 3.1 are supported (Swagger/OpenAPI 2.0 is not). Request bodies are passed through with `--body`; full request-body schema mapping is planned for a future TUI-driven input mode.
+
 ## Roadmap
 
 A very rough list of features and improvements I have in mind:
 
+- OAuth2 support for OpenAPI-generated CLIs
+- Full request-body schema mapping (input fields / interactive wizard via a TUI)
 - App-level and command-level versioning
 - Support for app- and command-level variables
 - Support directory-based spec composition (a la Terraform)
 - Support reading parameter values from files
 - Support for producing binaries/scripts for other languages
-- Improved unit test coverage
 - registry: cache latest spec content so app can be run even if spec is moved or deleted
 - Add run protection for spec files obtained from the internet
 - Providers for Azure Functions and Google Cloud Functions
