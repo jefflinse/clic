@@ -21,7 +21,7 @@ func PromptBody(fields []form.Field) (map[string]any, error) {
 
 	inputs := []huh.Field{}
 	for _, b := range bindings {
-		inputs = append(inputs, b.inputs()...)
+		inputs = append(inputs, b.inputs("")...)
 	}
 	if len(inputs) == 0 {
 		return map[string]any{}, nil
@@ -65,9 +65,14 @@ func newBinding(f form.Field) *binding {
 	return b
 }
 
-// inputs returns the huh field(s) this binding contributes to the form.
-func (b *binding) inputs() []huh.Field {
+// inputs returns the huh field(s) this binding contributes to the form. The
+// prefix qualifies nested labels with their parent path (e.g. "category.id") so
+// fields sharing a name across nesting levels stay distinguishable.
+func (b *binding) inputs(prefix string) []huh.Field {
 	label := b.field.Label()
+	if prefix != "" {
+		label = prefix + "." + label
+	}
 	switch b.field.Type {
 	case form.BooleanField:
 		return []huh.Field{huh.NewConfirm().Title(label).Description(b.field.Description).Value(&b.boolean)}
@@ -93,7 +98,7 @@ func (b *binding) inputs() []huh.Field {
 	case form.ObjectField:
 		inputs := []huh.Field{huh.NewNote().Title(label)}
 		for _, child := range b.children {
-			inputs = append(inputs, child.inputs()...)
+			inputs = append(inputs, child.inputs(label)...)
 		}
 		return inputs
 
