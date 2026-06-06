@@ -368,12 +368,12 @@ The studio lays the app out in k9s-style columns:
 │ ▸ user        │ • create          │ QUERY                         │
 │               │                   │  verbose  [x]                 │
 ├───────────────┴───────────────────┴───────────────────────────────┤
-│  200 OK · 84ms · 1.2kB · application/json · pretty/headers/raw     │
+│  200 OK · 84ms · 1.2kB · application/json · pretty/headers/raw/req │
 │ {                                                                 │
 │   "id": 42,                                                       │
 │   "name": "Rex"                                                   │
 │ }                                                                 │
-│ ↑↓ scroll · tab view · ^s resend · / find · ? help                │
+│ ↑↓ scroll · tab view · c copy · x capture · ^s resend · ? help    │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -383,17 +383,29 @@ The studio lays the app out in k9s-style columns:
   numbers, a toggle for booleans, a select for `enum` values, grouped fields for
   nested objects, scalar lists one-per-line, and a raw-body editor for free-form
   JSON. Required fields are validated; blank optionals are omitted.
+- **Preview** the exact wire request as you type — the bottom pane shows the
+  resolved method, URL, headers, and body *before* you send, and keeps it on a
+  `request` tab afterwards so you can always see what went out.
 - **Send** with `ctrl+s` and read a rich response: a colored status badge,
   latency and size, and syntax-highlighted JSON you can scroll, with
-  `tab` cycling pretty / headers / raw views. Press `y` to copy it.
+  `tab` cycling pretty / headers / raw / request views.
+- **Copy** (`c`) the current request as a ready-to-run `curl` command, as the
+  equivalent headless `clic` invocation, as just the URL, or copy the response
+  body — straight to your clipboard.
+- **Chain** requests: press `x` on a response to capture any value (picked from
+  the JSON by path) as a `{{variable}}`, then reference `{{name}}` in any later
+  command's field — it's substituted on send. `v` lists what you've captured.
+  Build one request from the output of another without leaving the keyboard.
 - **Jump** anywhere with the command palette (`/` or `ctrl+p`) — a fuzzy finder
   over every command in the app, handy for large OpenAPI specs.
 - Press `?` for the full key reference.
 
 The studio works for every provider, not just REST: `exec` commands run locally
-and stream their output, `lambda` commands show their payload. Outside the
+and show their output, `lambda` commands show their payload. Outside the
 studio, every command is still a plain subcommand you can script (flags and
-`--body` work headlessly and take precedence).
+`--body` work headlessly and take precedence) — and `copy as clic` bridges the
+two, handing you the exact command line to reproduce a request you built
+interactively.
 
 ## Roadmap
 
@@ -408,6 +420,7 @@ A very rough list of features and improvements I have in mind:
 - registry: cache latest spec content so app can be run even if spec is moved or deleted
 - Add run protection for spec files obtained from the internet
 - studio: request history and replay
-- studio: edit server/auth inline, and save/export filled requests
+- studio: edit server/auth inline
+- studio: persist captured variables and filled requests across sessions
 - Providers for Azure Functions and Google Cloud Functions
 - Support for specifying environment variables
