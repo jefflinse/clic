@@ -312,9 +312,9 @@ Paths become nested command groups and the HTTP method picks the verb:
 | OpenAPI | clic command |
 | ------- | ------------ |
 | `GET /pets` | `pets list` (alias `ls`) |
-| `POST /pets` | `pets create --body @pet.json` |
+| `POST /pets` | `pets create --body @pet.json` (or `-i`) |
 | `GET /pets/{id}` | `pets get <id>` |
-| `PATCH /pets/{id}` | `pets update <id> --body @patch.json` |
+| `PATCH /pets/{id}` | `pets update <id> --body @patch.json` (or `-i`) |
 | `PUT /pets/{id}` | `pets update <id>` — or `replace` when a `PATCH` also exists |
 | `DELETE /pets/{id}` | `pets delete <id>` (alias `rm`) |
 | `GET /users/{id}/posts` | `users posts list <id>` |
@@ -324,11 +324,28 @@ Parameters map as follows:
 
 - **path** parameters → required positional arguments, substituted into the URL
 - **query** and **header** parameters → flags (required ones become required flags)
-- **request body** → `--body` (inline JSON or `@file.json`)
+- **request body** → `--body` (inline JSON or `@file.json`), or an interactive form with `-i` (see [Interactive input](#interactive-input))
+
+### Interactive input
+
+For operations that take a request body, pass `-i` (`--interactive`) to fill it
+in via a terminal form instead of hand-writing JSON. clic builds the form from
+the request-body schema: text inputs for strings and numbers, a confirm for
+booleans, a select for `enum` values, and grouped fields for nested objects.
+Required fields are validated, and optional fields left blank are omitted from
+the request.
+
+```bash
+$ clic -i ./petstore.openapi.yaml pets create
+# prompts for name, status (a select), age, tags, ... then sends the request
+```
+
+`--body` still works and takes precedence — `-i` only prompts when no `--body`
+is supplied.
 
 ### Server and authentication
 
-The first `servers` entry becomes the default base URL, overridable with a global `--server` flag. Security schemes (everything except OAuth2) surface as global flags, each with a `CLIC_*` environment-variable fallback:
+The first `servers` entry becomes the default base URL, overridable with the global `--server` flag. Security schemes (everything except OAuth2) surface as global flags, each with a `CLIC_*` environment-variable fallback:
 
 | Scheme | Flag(s) | Env |
 | ------ | ------- | --- |
@@ -336,19 +353,21 @@ The first `servers` entry becomes the default base URL, overridable with a globa
 | HTTP basic | `--username` / `--password` | `CLIC_USERNAME` / `CLIC_PASSWORD` |
 | API key | `--api-key` | `CLIC_API_KEY` |
 
+clic's global flags (`--server`, `-i`, and the auth flags) are clic's own and must be placed **before** the spec; everything after the spec is passed through to the generated app as its own arguments. This keeps them from ever colliding with a parameter of the same name in the spec.
+
 ```bash
-$ clic ./api.yaml --token "$MY_TOKEN" users get 42
+$ clic --token "$MY_TOKEN" ./api.yaml users get 42
 $ CLIC_TOKEN="$MY_TOKEN" clic ./api.yaml users get 42
+$ clic --server https://staging.example.com ./api.yaml users get 42
 ```
 
-> **Note:** OpenAPI 3.0 and 3.1 are supported (Swagger/OpenAPI 2.0 is not). Request bodies are passed through with `--body`; full request-body schema mapping is planned for a future TUI-driven input mode.
+> **Note:** OpenAPI 3.0 and 3.1 are supported (Swagger/OpenAPI 2.0 is not).
 
 ## Roadmap
 
 A very rough list of features and improvements I have in mind:
 
 - OAuth2 support for OpenAPI-generated CLIs
-- Full request-body schema mapping (input fields / interactive wizard via a TUI)
 - App-level and command-level versioning
 - Support for app- and command-level variables
 - Support directory-based spec composition (a la Terraform)
