@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -58,6 +59,12 @@ func (s *studio) View() string {
 	if s.copy != nil {
 		return s.renderCopyMenu()
 	}
+	if s.cap != nil {
+		return s.renderCapture()
+	}
+	if s.varsOpen {
+		return s.renderVars()
+	}
 
 	groups := s.pane("GROUPS", s.renderGroups(s.gW-2), s.gW, s.colsH, s.focus == focusGroups)
 	commands := s.pane("COMMANDS", s.renderCommands(s.cW-2), s.cW, s.colsH, s.focus == focusCommands)
@@ -97,8 +104,15 @@ func (s *studio) topBar() string {
 		left += "  " + s.th.subtitle.Render(s.app.Description)
 	}
 	right := ""
+	if n := len(s.vars); n > 0 {
+		right = s.th.latency.Render(fmt.Sprintf("⚲ %d var", n))
+		if n > 1 {
+			right += "s"
+		}
+		right += "   "
+	}
 	if s.app.Server != "" {
-		right = s.th.server.Render("⇆ " + s.app.Server)
+		right += s.th.server.Render("⇆ " + s.app.Server)
 	}
 
 	gap := max(s.width-lipgloss.Width(left)-lipgloss.Width(right), 1)
@@ -115,7 +129,7 @@ func (s *studio) helpBar() string {
 	case focusRequest:
 		hints = [][2]string{{"tab", "next field"}, {"^s", "send"}, {"esc", "back"}, {"^c", "quit"}}
 	case focusResponse:
-		hints = [][2]string{{"↑↓", "scroll"}, {"tab", "view"}, {"esc", "back"}, {"^s", "resend"}, {"^c", "quit"}}
+		hints = [][2]string{{"↑↓", "scroll"}, {"tab", "view"}, {"c", "copy"}, {"x", "capture"}, {"^s", "resend"}}
 	}
 
 	// always advertise the palette and help, the two non-obvious global keys

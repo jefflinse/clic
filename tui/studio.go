@@ -91,8 +91,10 @@ type studio struct {
 
 	// overlays and transient UI
 	helpOpen bool
+	varsOpen bool
 	pal      *paletteState
 	copy     *copyMenu
+	cap      *captureState
 	flash    string
 
 	width, height int
@@ -332,6 +334,13 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if s.copy != nil {
 		return s, s.handleCopyKey(msg)
 	}
+	if s.cap != nil {
+		return s, s.handleCaptureKey(msg)
+	}
+	if s.varsOpen {
+		s.varsOpen = false
+		return s, nil
+	}
 
 	switch msg.String() {
 	case "ctrl+c":
@@ -354,6 +363,12 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return s, nil
 		case "c":
 			s.openCopyMenu()
+			return s, nil
+		case "x":
+			s.openCapture()
+			return s, nil
+		case "v":
+			s.varsOpen = true
 			return s, nil
 		}
 	}
