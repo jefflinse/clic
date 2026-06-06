@@ -123,12 +123,22 @@ func runSpec(cmd *cobra.Command, args []string, force spec.Format) error {
 		return err
 	}
 
+	opts := provider.ResolveOptions(cmd.Flags())
+	ctx := provider.WithOptions(cmd.Context(), opts)
+	if appSpec.Auth != nil {
+		ctx = provider.WithAuth(ctx, appSpec.Auth)
+	}
+
+	// the global -i flag (before the spec) opens the interactive studio instead
+	// of running a single command headlessly
+	if opts.Interactive {
+		return launchStudio(ctx, appSpec, opts, args[1:])
+	}
+
 	app, err := clic.NewAppFromSpec(appSpec)
 	if err != nil {
 		return fmt.Errorf("failed to create app: %w", err)
 	}
-
-	ctx := provider.WithOptions(cmd.Context(), provider.ResolveOptions(cmd.Flags()))
 
 	// the app reports its own errors via cobra; exit non-zero without re-reporting
 	if err := app.RunContext(ctx, args[1:]); err != nil {
