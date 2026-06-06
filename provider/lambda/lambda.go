@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -67,6 +68,51 @@ func (s *Spec) Validate() error {
 	}
 
 	return nil
+}
+
+// Summary describes the invocation in one line.
+func (s *Spec) Summary() string {
+	return "invoke " + s.ARN
+}
+
+// Sections describes the function's request parameters for interactive entry.
+func (s *Spec) Sections() []provider.Section {
+	if len(s.RequestParams) == 0 {
+		return nil
+	}
+	return []provider.Section{{Key: "request", Title: "Request", Fields: s.RequestParams.Fields()}}
+}
+
+// Execute assigns the collected request parameters, invokes the function, and
+// returns its payload (or a function error) as a text result.
+func (s *Spec) Execute(ctx context.Context, in provider.Inputs) (*provider.Result, error) {
+	s.RequestParams.Assign(in.Scalars["request"])
+
+	request := map[string]any{}
+	for _, param := range s.RequestParams {
+		request[param.Name] = param.Value()
+	}
+
+	start := time.Now()
+	response, functionError, err := executeLambda(ctx, s.ARN, request)
+	if err != nil {
+		return nil, err
+	}
+
+	body := response
+	status := 0
+	if functionError != nil {
+		body = []byte(*functionError)
+		status = 1
+	}
+
+	return &provider.Result{
+		Kind:        provider.ResultText,
+		RequestLine: "invoke " + s.ARN,
+		Status:      status,
+		Latency:     time.Since(start),
+		Body:        body,
+	}, nil
 }
 
 func (s *Spec) parameterizedRequest(cmd *cobra.Command, args []string) (map[string]any, error) {

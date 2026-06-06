@@ -1,10 +1,12 @@
 package exec
 
 import (
+	"context"
 	"fmt"
 	"os"
 	osexec "os/exec"
 	"strings"
+	"time"
 
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/jefflinse/clic/provider"
@@ -76,26 +78,68 @@ func (s *Spec) Validate() error {
 }
 
 func (s *Spec) parameterizedNameAndArgs(cmd *cobra.Command, args []string) (string, []string, error) {
-	name := s.Name
-	rawArgs := make([]string, len(s.Args))
-	copy(rawArgs, s.Args)
-
 	if err := s.Parameters.ResolveValues(cmd, args); err != nil {
 		return "", nil, err
 	}
 
-	name = s.Parameters.InjectValues(name)
-	for i := range rawArgs {
-		rawArgs[i] = s.Parameters.InjectValues(rawArgs[i])
-	}
+	name, resolved := s.resolvedNameAndArgs()
+	return name, resolved, nil
+}
 
-	// strip out empty arguments
+// resolvedNameAndArgs substitutes the already-assigned parameter values into
+// the command name and arguments, dropping any argument that resolves to empty.
+func (s *Spec) resolvedNameAndArgs() (string, []string) {
+	name := s.Parameters.InjectValues(s.Name)
+
 	resolved := []string{}
-	for _, arg := range rawArgs {
-		if arg != "" {
-			resolved = append(resolved, arg)
+	for _, arg := range s.Args {
+		if injected := s.Parameters.InjectValues(arg); injected != "" {
+			resolved = append(resolved, injected)
 		}
 	}
 
-	return name, resolved, nil
+	return name, resolved
+}
+
+// Summary describes the command in one line, e.g. "git status".
+func (s *Spec) Summary() string {
+	return strings.TrimSpace(s.Name + " " + strings.Join(s.Args, " "))
+}
+
+// Sections describes the command's parameters for interactive entry.
+func (s *Spec) Sections() []provider.Section {
+	if len(s.Parameters) == 0 {
+		return nil
+	}
+	return []provider.Section{{Key: "params", Title: "Arguments", Fields: s.Parameters.Fields()}}
+}
+
+// Execute assigns the collected parameter values, runs the command, and returns
+// its combined output (stdout+stderr) as a text result. The process exit code
+// is reported in the result rather than terminating clic.
+func (s *Spec) Execute(ctx context.Context, in provider.Inputs) (*provider.Result, error) {
+	s.Parameters.Assign(in.Scalars["params"])
+	name, args := s.resolvedNameAndArgs()
+
+	command := osexec.CommandContext(ctx, name, args...)
+	command.Env = os.Environ()
+
+	start := time.Now()
+	out, err := command.CombinedOutput()
+	latency := time.Since(start)
+
+	status := 0
+	if exitErr, ok := err.(*osexec.ExitError); ok {
+		status = exitErr.ProcessState.ExitCode()
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &provider.Result{
+		Kind:        provider.ResultText,
+		RequestLine: strings.TrimSpace(name + " " + strings.Join(args, " ")),
+		Status:      status,
+		Latency:     latency,
+		Body:        out,
+	}, nil
 }

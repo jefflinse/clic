@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/jefflinse/clic/form"
 	"github.com/jefflinse/clic/ioutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -193,8 +194,57 @@ func NewInvalidParameterSpecError(reason string) error {
 	return fmt.Errorf("invalid parameter spec: %s", reason)
 }
 
+// Field describes the parameter as a UI-agnostic form.Field, so an interactive
+// renderer can present it alongside schema-derived body fields.
+func (param *Parameter) Field() form.Field {
+	return form.Field{
+		Name:        param.Name,
+		Description: param.Description,
+		Type:        param.fieldType(),
+		Required:    param.Required,
+		Default:     param.Default,
+	}
+}
+
+// fieldType maps a parameter's type onto the corresponding form.FieldType.
+func (param *Parameter) fieldType() form.FieldType {
+	switch param.Type {
+	case BoolParamType:
+		return form.BooleanField
+	case IntParamType:
+		return form.IntegerField
+	case NumberParamType:
+		return form.NumberField
+	default:
+		return form.StringField
+	}
+}
+
 // A ParameterSet is a slice of parameter pointers.
 type ParameterSet []*Parameter
+
+// Fields describes the set as form.Fields, preserving order, for interactive
+// rendering.
+func (ps ParameterSet) Fields() []form.Field {
+	fields := make([]form.Field, 0, len(ps))
+	for _, param := range ps {
+		fields = append(fields, param.Field())
+	}
+	return fields
+}
+
+// Assign sets each parameter's value from the given name/value map, applying
+// defaults for parameters the map omits. It is the interactive counterpart to
+// ResolveValues/ResolveFromFlags, which read from cobra.
+func (ps ParameterSet) Assign(values map[string]any) {
+	for _, param := range ps {
+		if v, ok := values[param.Name]; ok && v != nil {
+			param.SetValue(v)
+			continue
+		}
+		param.SetDefaultValue()
+	}
+}
 
 // ArgsUsage returns a usage string describing the set's required positional arguments.
 func (ps ParameterSet) ArgsUsage() string {
