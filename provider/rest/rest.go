@@ -141,20 +141,19 @@ func (s *Spec) parameterizedRequest(ctx context.Context, cmd *cobra.Command, arg
 	}
 
 	if auth := provider.AuthFromContext(ctx); auth != nil {
-		auth.Apply(req, cmd.Flags())
+		auth.Apply(req, provider.OptionsFromContext(ctx))
 	}
 
 	return req, nil
 }
 
-// effectiveEndpoint joins the base URL (overridable via the --server flag) with
-// the endpoint path. When no base is configured, the endpoint is used as-is.
+// effectiveEndpoint joins the base URL (overridable via the global --server
+// flag) with the endpoint path. When no base is configured, the endpoint is
+// used as-is.
 func (s *Spec) effectiveEndpoint(cmd *cobra.Command) string {
 	base := s.BaseURL
-	if flag := cmd.Flags().Lookup(provider.FlagServer); flag != nil {
-		if override, err := cmd.Flags().GetString(provider.FlagServer); err == nil && override != "" {
-			base = override
-		}
+	if override := provider.OptionsFromContext(cmd.Context()).Server; override != "" {
+		base = override
 	}
 
 	if base == "" {
@@ -182,7 +181,7 @@ func (s *Spec) requestBody(cmd *cobra.Command) (io.Reader, error) {
 
 		// no raw body supplied: offer an interactive form when the user opted
 		// in and we have a schema to drive it
-		if provider.Interactive(cmd) && len(s.Body) > 0 {
+		if provider.OptionsFromContext(cmd.Context()).Interactive && len(s.Body) > 0 {
 			values, err := tui.PromptBody(s.Body)
 			if err != nil {
 				return nil, err

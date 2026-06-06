@@ -3,14 +3,10 @@ package provider
 import (
 	"context"
 	"net/http"
-	"os"
 	"strings"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
-// Names of the app-level persistent flags used for server selection and auth.
+// Names of clic's global flags used for server selection and auth.
 const (
 	FlagServer   = "server"
 	FlagToken    = "token"
@@ -34,66 +30,30 @@ type AuthScheme struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"` // header/query name (apikey)
 }
 
-// RegisterServerFlag registers the persistent --server override flag.
-func RegisterServerFlag(cmd *cobra.Command, defaultServer string) {
-	cmd.PersistentFlags().String(FlagServer, defaultServer, "override the API server base URL")
-}
-
-// RegisterFlags registers the persistent auth flags for this scheme.
-func (a *AuthScheme) RegisterFlags(cmd *cobra.Command) {
-	flags := cmd.PersistentFlags()
+// Apply adds credentials to the request using the values resolved into the
+// given options.
+func (a *AuthScheme) Apply(req *http.Request, o *Options) {
 	switch strings.ToLower(a.Type) {
 	case AuthBearer:
-		flags.String(FlagToken, "", "bearer token (env: CLIC_TOKEN)")
-	case AuthBasic:
-		flags.String(FlagUsername, "", "basic-auth username (env: CLIC_USERNAME)")
-		flags.String(FlagPassword, "", "basic-auth password (env: CLIC_PASSWORD)")
-	case AuthAPIKey:
-		flags.String(FlagAPIKey, "", "API key (env: CLIC_API_KEY)")
-	}
-}
-
-// Apply adds credentials to the request, reading values from the given flags
-// and falling back to CLIC_* environment variables.
-func (a *AuthScheme) Apply(req *http.Request, flags *pflag.FlagSet) {
-	switch strings.ToLower(a.Type) {
-	case AuthBearer:
-		if token := flagOrEnv(flags, FlagToken); token != "" {
-			req.Header.Set("Authorization", "Bearer "+token)
+		if o.Token != "" {
+			req.Header.Set("Authorization", "Bearer "+o.Token)
 		}
 	case AuthBasic:
-		user := flagOrEnv(flags, FlagUsername)
-		pass := flagOrEnv(flags, FlagPassword)
-		if user != "" || pass != "" {
-			req.SetBasicAuth(user, pass)
+		if o.Username != "" || o.Password != "" {
+			req.SetBasicAuth(o.Username, o.Password)
 		}
 	case AuthAPIKey:
-		key := flagOrEnv(flags, FlagAPIKey)
-		if key == "" {
+		if o.APIKey == "" {
 			return
 		}
 		if strings.EqualFold(a.In, "query") {
 			query := req.URL.Query()
-			query.Set(a.Name, key)
+			query.Set(a.Name, o.APIKey)
 			req.URL.RawQuery = query.Encode()
 		} else {
-			req.Header.Set(a.Name, key)
+			req.Header.Set(a.Name, o.APIKey)
 		}
 	}
-}
-
-// flagOrEnv returns a flag's value if set and non-empty, otherwise the value of
-// the corresponding CLIC_<FLAG> environment variable.
-func flagOrEnv(flags *pflag.FlagSet, name string) string {
-	if flags != nil {
-		if flags.Lookup(name) != nil {
-			if value, err := flags.GetString(name); err == nil && value != "" {
-				return value
-			}
-		}
-	}
-
-	return os.Getenv("CLIC_" + strings.ToUpper(strings.ReplaceAll(name, "-", "_")))
 }
 
 type authCtxKey struct{}

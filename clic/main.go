@@ -6,6 +6,7 @@ import (
 
 	"github.com/jefflinse/clic"
 	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/provider"
 	"github.com/jefflinse/clic/registry"
 	"github.com/jefflinse/clic/source"
 	"github.com/jefflinse/clic/spec"
@@ -34,11 +35,13 @@ func rootCmd() *cobra.Command {
 			if len(args) == 0 {
 				return cmd.Help()
 			}
-			return runSpec(args, spec.FormatUnknown)
+			return runSpec(cmd, args, spec.FormatUnknown)
 		},
 	}
 
-	// stop parsing flags after the spec so the rest pass through to the app
+	// clic's own global flags are parsed before the spec; everything after the
+	// spec passes through to the app as its own argv
+	provider.RegisterGlobalFlags(root.PersistentFlags(), "")
 	root.Flags().SetInterspersed(false)
 
 	root.AddCommand(
@@ -62,7 +65,7 @@ func runCmd() *cobra.Command {
 		Short: "run a clic or OpenAPI spec directly",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runSpec(args, forceFormat(cmd))
+			return runSpec(cmd, args, forceFormat(cmd))
 		},
 	}
 
@@ -112,7 +115,9 @@ func versionCmd() *cobra.Command {
 }
 
 // runSpec loads the spec at args[0] and runs it, passing args[1:] to the app.
-func runSpec(args []string, force spec.Format) error {
+// clic's global flags are resolved from cmd and threaded to the app via the
+// context, keeping them out of the app's own flag namespace.
+func runSpec(cmd *cobra.Command, args []string, force spec.Format) error {
 	appSpec, err := clic.LoadSpec(resolveLocation(args[0]), force)
 	if err != nil {
 		return err
@@ -123,8 +128,10 @@ func runSpec(args []string, force spec.Format) error {
 		return fmt.Errorf("failed to create app: %w", err)
 	}
 
+	ctx := provider.WithOptions(cmd.Context(), provider.ResolveOptions(cmd.Flags()))
+
 	// the app reports its own errors via cobra; exit non-zero without re-reporting
-	if err := app.Run(args[1:]); err != nil {
+	if err := app.RunContext(ctx, args[1:]); err != nil {
 		os.Exit(1)
 	}
 
