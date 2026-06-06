@@ -77,6 +77,33 @@ func (s *Spec) Validate() error {
 	return nil
 }
 
+// Preview reports the resolved command line and the headless CLI arguments that
+// reproduce it, without running anything.
+func (s *Spec) Preview(_ context.Context, in provider.Inputs) (*provider.RequestPreview, error) {
+	s.Parameters.Assign(in.Scalars["params"])
+	name, args := s.resolvedNameAndArgs()
+	return &provider.RequestPreview{
+		Kind:    provider.ResultText,
+		Display: strings.TrimSpace(name + " " + strings.Join(args, " ")),
+		CLIArgs: cliArgs(s.Parameters),
+	}, nil
+}
+
+// cliArgs renders a parameter set as headless CLI arguments: required parameters
+// are positional (in declared order), optional parameters are flags.
+func cliArgs(params provider.ParameterSet) []string {
+	var args []string
+	for _, p := range params.Required() {
+		args = append(args, fmt.Sprintf("%v", p.Value()))
+	}
+	for _, p := range params.Optional() {
+		if v := fmt.Sprintf("%v", p.Value()); v != "" {
+			args = append(args, "--"+p.CLIFlagName()+"="+v)
+		}
+	}
+	return args
+}
+
 func (s *Spec) parameterizedNameAndArgs(cmd *cobra.Command, args []string) (string, []string, error) {
 	if err := s.Parameters.ResolveValues(cmd, args); err != nil {
 		return "", nil, err

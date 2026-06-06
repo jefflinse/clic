@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -112,6 +113,38 @@ func (s *Spec) Execute(ctx context.Context, in provider.Inputs) (*provider.Resul
 		Status:      status,
 		Latency:     time.Since(start),
 		Body:        body,
+	}, nil
+}
+
+// Preview reports the resolved invocation (ARN plus JSON payload) and the
+// headless CLI arguments that reproduce it, without invoking the function.
+func (s *Spec) Preview(_ context.Context, in provider.Inputs) (*provider.RequestPreview, error) {
+	s.RequestParams.Assign(in.Scalars["request"])
+
+	request := map[string]any{}
+	for _, p := range s.RequestParams {
+		request[p.Name] = p.Value()
+	}
+	payload, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	var args []string
+	for _, p := range s.RequestParams.Required() {
+		args = append(args, fmt.Sprintf("%v", p.Value()))
+	}
+	for _, p := range s.RequestParams.Optional() {
+		if v := fmt.Sprintf("%v", p.Value()); v != "" {
+			args = append(args, "--"+p.CLIFlagName()+"="+v)
+		}
+	}
+
+	return &provider.RequestPreview{
+		Kind:    provider.ResultText,
+		Display: strings.TrimSpace("invoke " + s.ARN + " " + string(payload)),
+		Body:    payload,
+		CLIArgs: args,
 	}, nil
 }
 

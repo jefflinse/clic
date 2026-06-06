@@ -91,6 +91,53 @@ func TestExecute_WiresPathQueryHeaderAndBody(t *testing.T) {
 	assert.Contains(t, result.RequestLine, "POST ")
 }
 
+func TestPreview_HTTPRequestAndCLIArgs(t *testing.T) {
+	s := &Spec{
+		Method:       "post",
+		BaseURL:      "https://api.example.com",
+		Endpoint:     "/pets/{id}",
+		PathParams:   provider.ParameterSet{{Name: "id", Type: provider.StringParamType, Required: true}},
+		QueryParams:  provider.ParameterSet{{Name: "verbose", Type: provider.BoolParamType}},
+		HeaderParams: provider.ParameterSet{{Name: "X-Trace", Type: provider.StringParamType}},
+		BodyParams:   provider.ParameterSet{{Name: "name", Type: provider.StringParamType}},
+	}
+
+	pv, err := s.Preview(context.Background(), provider.Inputs{
+		Scalars: map[string]map[string]any{
+			"path":   {"id": "42"},
+			"query":  {"verbose": true},
+			"header": {"X-Trace": "abc"},
+		},
+		Body: map[string]any{"name": "Rex"},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, provider.ResultHTTP, pv.Kind)
+	assert.Equal(t, "POST", pv.Method)
+	assert.Equal(t, "https://api.example.com/pets/42?verbose=true", pv.URL)
+	assert.Equal(t, "abc", pv.Headers.Get("X-Trace"))
+	assert.Equal(t, "application/json", pv.Headers.Get("Content-Type"))
+	assert.JSONEq(t, `{"name":"Rex"}`, string(pv.Body))
+
+	// path is positional; query/header/body become flags
+	assert.Equal(t, []string{"42", "--verbose=true", "--x-trace=abc", "--name=Rex"}, pv.CLIArgs)
+}
+
+func TestPreview_RawBodyOmitsEmptyAndCarriesBodyFlag(t *testing.T) {
+	s := &Spec{Method: "GET", BaseURL: "https://api.example.com", Endpoint: "/x"}
+
+	empty, err := s.Preview(context.Background(), provider.Inputs{})
+	require.NoError(t, err)
+	assert.Nil(t, empty.Body)
+	assert.Empty(t, empty.CLIArgs)
+
+	s.RawBody = true
+	withBody, err := s.Preview(context.Background(), provider.Inputs{RawBody: `{"raw":1}`})
+	require.NoError(t, err)
+	assert.Equal(t, []byte(`{"raw":1}`), withBody.Body)
+	assert.Equal(t, []string{`--body={"raw":1}`}, withBody.CLIArgs)
+}
+
 func TestExecute_RawBody(t *testing.T) {
 	var got []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

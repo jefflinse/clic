@@ -152,12 +152,12 @@ func (s *Spec) Execute(ctx context.Context, in provider.Inputs) (*provider.Resul
 	s.QueryParams.Assign(in.Scalars["query"])
 	s.HeaderParams.Assign(in.Scalars["header"])
 
-	body, err := s.interactiveBody(in)
+	body, err := s.interactiveBodyBytes(in)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := s.buildRequest(ctx, body)
+	req, err := s.buildRequest(ctx, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -179,28 +179,54 @@ func (s *Spec) Execute(ctx context.Context, in provider.Inputs) (*provider.Resul
 	}, nil
 }
 
-// interactiveBody builds the request body reader from collected studio inputs.
-func (s *Spec) interactiveBody(in provider.Inputs) (io.Reader, error) {
+// Preview describes exactly what the request will send, without performing it.
+// It assigns the collected inputs the same way Execute does, then reports the
+// resolved method, URL, headers, and body, plus the headless CLI arguments that
+// reproduce the request.
+func (s *Spec) Preview(ctx context.Context, in provider.Inputs) (*provider.RequestPreview, error) {
+	s.PathParams.Assign(in.Scalars["path"])
+	s.QueryParams.Assign(in.Scalars["query"])
+	s.HeaderParams.Assign(in.Scalars["header"])
+
+	body, err := s.interactiveBodyBytes(in)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := s.buildRequest(ctx, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+
+	return &provider.RequestPreview{
+		Kind:    provider.ResultHTTP,
+		Method:  strings.ToUpper(s.Method),
+		URL:     req.URL.String(),
+		Headers: req.Header,
+		Body:    displayBody(body),
+		CLIArgs: s.cliArgs(in),
+	}, nil
+}
+
+// interactiveBodyBytes builds the raw request body from collected studio inputs.
+// A nil result means the request carries no body.
+func (s *Spec) interactiveBodyBytes(in provider.Inputs) ([]byte, error) {
 	switch {
 	case s.RawBody:
 		if in.RawBody == "" {
-			return http.NoBody, nil
+			return nil, nil
 		}
 		if path, ok := strings.CutPrefix(in.RawBody, "@"); ok {
 			content, err := os.ReadFile(path)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read body file: %w", err)
 			}
-			return bytes.NewReader(content), nil
+			return content, nil
 		}
-		return strings.NewReader(in.RawBody), nil
+		return []byte(in.RawBody), nil
 
 	case len(s.Body) > 0:
-		bodyBytes, err := json.Marshal(in.Body)
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(bodyBytes), nil
+		return json.Marshal(in.Body)
 
 	default:
 		s.BodyParams.Assign(in.Body)
@@ -208,12 +234,63 @@ func (s *Spec) interactiveBody(in provider.Inputs) (io.Reader, error) {
 		for _, param := range s.BodyParams {
 			body[param.Name] = param.Value()
 		}
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(bodyBytes), nil
+		return json.Marshal(body)
 	}
+}
+
+// cliArgs returns the positional arguments and flags that reproduce this request
+// from the headless CLI: path parameters are positional (in declared order),
+// query/header/body parameters are flags, and a raw or structured body becomes a
+// --body flag.
+func (s *Spec) cliArgs(in provider.Inputs) []string {
+	var args []string
+	for _, p := range s.PathParams {
+		args = append(args, fmt.Sprintf("%v", p.Value()))
+	}
+	for _, set := range []provider.ParameterSet{s.QueryParams, s.HeaderParams} {
+		for _, p := range set {
+			if v := fmt.Sprintf("%v", p.Value()); v != "" {
+				args = append(args, "--"+p.CLIFlagName()+"="+v)
+			}
+		}
+	}
+
+	switch {
+	case s.RawBody:
+		if in.RawBody != "" {
+			args = append(args, "--"+bodyFlagName+"="+in.RawBody)
+		}
+	case len(s.Body) > 0:
+		if b := displayBody(mustJSON(in.Body)); b != nil {
+			args = append(args, "--"+bodyFlagName+"="+string(b))
+		}
+	default:
+		for _, p := range s.BodyParams {
+			if v := fmt.Sprintf("%v", p.Value()); v != "" {
+				args = append(args, "--"+p.CLIFlagName()+"="+v)
+			}
+		}
+	}
+	return args
+}
+
+// displayBody returns b unless it is empty or an empty JSON object, in which
+// case it returns nil so callers can omit a meaningless body.
+func displayBody(b []byte) []byte {
+	switch strings.TrimSpace(string(b)) {
+	case "", "{}", "null":
+		return nil
+	}
+	return b
+}
+
+// mustJSON marshals v, returning nil on error (used only for display).
+func mustJSON(v any) []byte {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil
+	}
+	return b
 }
 
 // buildRequest assembles the HTTP request from parameters that already hold

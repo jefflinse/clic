@@ -109,3 +109,34 @@ type Interactive interface {
 	// Execute runs the command with the collected inputs and returns a result.
 	Execute(ctx context.Context, in Inputs) (*Result, error)
 }
+
+// A RequestPreview is a structured, side-effect-free view of exactly what a
+// command will send, built from the same inputs Execute would use but without
+// performing any I/O. The studio renders it before sending and derives the
+// "copy as curl / clic / url" actions from it.
+type RequestPreview struct {
+	// Kind selects how the preview is rendered: an HTTP request (method, URL,
+	// headers, body) or a plain textual invocation.
+	Kind ResultKind
+
+	// Method, URL, Headers, and Body describe an HTTP request (ResultHTTP). Body
+	// is nil when the request carries no meaningful payload.
+	Method  string
+	URL     string
+	Headers http.Header
+	Body    []byte
+
+	// Display is a one-line rendering of a non-HTTP invocation (ResultText),
+	// e.g. "git status" or "invoke arn:aws:… {\"id\":1}".
+	Display string
+
+	// CLIArgs are the positional arguments and flags that, appended after the
+	// command's path, reproduce this request from the headless clic CLI.
+	CLIArgs []string
+}
+
+// Previewer is implemented by interactive providers that can describe the exact
+// request they will send without performing it.
+type Previewer interface {
+	Preview(ctx context.Context, in Inputs) (*RequestPreview, error)
+}
