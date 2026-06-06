@@ -132,7 +132,7 @@ func runSpec(cmd *cobra.Command, args []string, force spec.Format) error {
 	// the global -i flag (before the spec) opens the interactive studio instead
 	// of running a single command headlessly
 	if opts.Interactive {
-		return launchStudio(ctx, appSpec, opts, args[1:])
+		return launchStudio(ctx, appSpec, opts, args[0], args[1:])
 	}
 
 	app, err := clic.NewAppFromSpec(appSpec)

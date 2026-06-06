@@ -26,7 +26,10 @@ type StudioApp struct {
 	Name        string
 	Description string
 	Server      string
-	Commands    []Command
+	// Invocation is the headless launch prefix (e.g. "clic ./petstore.yaml")
+	// used to render "copy as clic command".
+	Invocation string
+	Commands   []Command
 }
 
 // RunStudio launches the full-screen studio for the given app. When selected is
@@ -83,9 +86,13 @@ type studio struct {
 	focus   focusZone
 	sending bool
 
+	// captured variables for request chaining ({{name}} references)
+	vars []variable
+
 	// overlays and transient UI
 	helpOpen bool
 	pal      *paletteState
+	copy     *copyMenu
 	flash    string
 
 	width, height int
@@ -198,11 +205,46 @@ func (s *studio) selectLeafFromEntries() tea.Cmd {
 	s.leaf = leaf
 	s.req = newRequestForm(providerSections(leaf), s.th)
 	s.resp.setResult(nil)
+	s.refreshPreview()
 	s.relayout()
 	if s.req.form != nil {
 		return s.req.form.Init()
 	}
 	return nil
+}
+
+// currentInputs collects everything entered in the request form, with chained
+// variables substituted, ready for preview or execution.
+func (s *studio) currentInputs() provider.Inputs {
+	if s.req == nil {
+		return provider.Inputs{}
+	}
+	return s.applyVars(s.req.collect())
+}
+
+// refreshPreview recomputes the live request preview for the selected command,
+// so the response pane can show exactly what ctrl+s will send.
+func (s *studio) refreshPreview() {
+	pv, ok := s.previewer()
+	if !ok {
+		s.resp.setPreview(nil)
+		return
+	}
+	preview, err := pv.Preview(s.ctx, s.currentInputs())
+	if err != nil {
+		s.resp.setPreview(nil)
+		return
+	}
+	s.resp.setPreview(preview)
+}
+
+// previewer returns the selected leaf's Previewer, if it implements one.
+func (s *studio) previewer() (provider.Previewer, bool) {
+	if s.leaf == nil {
+		return nil, false
+	}
+	pv, ok := s.leaf.Provider.(provider.Previewer)
+	return pv, ok
 }
 
 func providerSections(leaf *Command) []provider.Section {
@@ -287,6 +329,9 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if s.pal != nil {
 		return s, s.handlePaletteKey(msg)
 	}
+	if s.copy != nil {
+		return s, s.handleCopyKey(msg)
+	}
 
 	switch msg.String() {
 	case "ctrl+c":
@@ -298,7 +343,7 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 
-	// '?' and '/' are reserved outside the request form (where they're text)
+	// these keys are reserved outside the request form, where they're text input
 	if s.focus != focusRequest {
 		switch msg.String() {
 		case "?":
@@ -306,6 +351,9 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return s, nil
 		case "/":
 			s.openPalette()
+			return s, nil
+		case "c":
+			s.openCopyMenu()
 			return s, nil
 		}
 	}
@@ -385,6 +433,7 @@ func (s *studio) handleRequestKey(msg tea.KeyMsg) tea.Cmd {
 	}
 	form, cmd := s.req.form.Update(msg)
 	s.req.form = asHuhForm(form, s.req.form)
+	s.refreshPreview()
 	return cmd
 }
 

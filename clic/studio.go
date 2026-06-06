@@ -12,11 +12,12 @@ import (
 // launchStudio opens the full-screen interactive studio for the given spec. The
 // passthrough args (everything after the spec) name an optional command path to
 // pre-select and focus on launch.
-func launchStudio(ctx context.Context, appSpec *spec.App, opts *provider.Options, passthrough []string) error {
+func launchStudio(ctx context.Context, appSpec *spec.App, opts *provider.Options, specRef string, passthrough []string) error {
 	studioApp := tui.StudioApp{
 		Name:        appSpec.Name,
 		Description: appSpec.Description,
 		Server:      effectiveServer(appSpec, opts),
+		Invocation:  "clic " + specRef,
 		Commands:    toStudioCommands(appSpec.Commands),
 	}
 

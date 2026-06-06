@@ -19,19 +19,24 @@ const (
 	tabPretty respTab = iota
 	tabHeaders
 	tabRaw
+	tabRequest
 )
+
+// respTabCount is the number of cyclable response views.
+const respTabCount = 4
 
 // responsePane renders the outcome of the last execution: a summary line (status
 // badge, latency, size) above a scrollable body shown as pretty/highlighted
 // JSON, raw text, or response headers.
 type responsePane struct {
-	vp     viewport.Model
-	th     theme
-	result *provider.Result
-	err    error
-	tab    respTab
-	width  int
-	height int
+	vp      viewport.Model
+	th      theme
+	result  *provider.Result
+	preview *provider.RequestPreview
+	err     error
+	tab     respTab
+	width   int
+	height  int
 }
 
 func newResponsePane(th theme) responsePane {
@@ -59,11 +64,20 @@ func (r *responsePane) setError(err error) {
 	r.reflow()
 }
 
+// setPreview stores the live request preview. It is shown whenever no result is
+// displayed yet, and via the "request" tab once a result is present.
+func (r *responsePane) setPreview(pv *provider.RequestPreview) {
+	r.preview = pv
+	if r.result == nil && r.err == nil {
+		r.reflow()
+	}
+}
+
 func (r *responsePane) cycleTab() {
 	if r.result == nil {
 		return
 	}
-	r.tab = (r.tab + 1) % 3
+	r.tab = (r.tab + 1) % respTabCount
 	r.vp.GotoTop()
 	r.reflow()
 }
@@ -84,7 +98,8 @@ func (r *responsePane) body() string {
 	case r.err != nil:
 		return r.th.statusStyle(0).Render(" ERR ") + " " + r.th.json.str.Render(r.err.Error())
 	case r.result == nil:
-		return r.th.desc.Render("Fill in the request and press ctrl+s to send.")
+		// before the first send, the pane previews what ctrl+s will send
+		return r.renderPreview()
 	}
 
 	switch r.tab {
@@ -92,6 +107,8 @@ func (r *responsePane) body() string {
 		return r.renderHeaders()
 	case tabRaw:
 		return string(r.result.Body)
+	case tabRequest:
+		return r.renderPreview()
 	default:
 		return r.renderBody()
 	}
@@ -138,7 +155,12 @@ func (r *responsePane) summary() string {
 		return r.th.statusStyle(0).Render(" FAILED ")
 	}
 	if r.result == nil {
-		return r.th.desc.Render("response")
+		if r.preview == nil {
+			return r.th.desc.Render("response")
+		}
+		return r.th.paneTitle.Render("▲ REQUEST PREVIEW") +
+			r.th.json.punct.Render(" · ") +
+			r.th.desc.Render("ctrl+s sends")
 	}
 
 	parts := []string{statusBadge(r.th, r.result)}
@@ -154,7 +176,7 @@ func (r *responsePane) summary() string {
 }
 
 func (r *responsePane) tabsStrip() string {
-	labels := []string{"pretty", "headers", "raw"}
+	labels := []string{"pretty", "headers", "raw", "request"}
 	rendered := make([]string, len(labels))
 	for i, label := range labels {
 		if respTab(i) == r.tab {

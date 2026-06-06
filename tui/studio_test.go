@@ -20,6 +20,7 @@ import (
 type fakeProvider struct {
 	sections []provider.Section
 	result   *provider.Result
+	preview  *provider.RequestPreview
 	summary  string
 	gotInput provider.Inputs
 }
@@ -32,6 +33,25 @@ func (f *fakeProvider) Summary() string              { return f.summary }
 func (f *fakeProvider) Execute(_ context.Context, in provider.Inputs) (*provider.Result, error) {
 	f.gotInput = in
 	return f.result, nil
+}
+
+// Preview echoes the collected inputs back so tests can assert variable
+// substitution and live preview wiring. It reports a simple HTTP request.
+func (f *fakeProvider) Preview(_ context.Context, in provider.Inputs) (*provider.RequestPreview, error) {
+	f.gotInput = in
+	if f.preview != nil {
+		return f.preview, nil
+	}
+	url := "https://api.petstore.io/pets"
+	if id := in.Scalar("path", "id"); id != nil {
+		url += "/" + id.(string)
+	}
+	return &provider.RequestPreview{
+		Kind:    provider.ResultHTTP,
+		Method:  "GET",
+		URL:     url,
+		Headers: http.Header{"Content-Type": []string{"application/json"}},
+	}, nil
 }
 
 func testApp() StudioApp {
@@ -153,6 +173,55 @@ func TestStudio_ResultMsgRendersStatus(t *testing.T) {
 	view := s.View()
 	assert.Contains(t, view, "200")
 	assert.Contains(t, view, "OK")
+}
+
+func TestStudio_PreviewsRequestBeforeSending(t *testing.T) {
+	s := newStudio(context.Background(), testApp())
+	s.preselect([]string{"pets", "getById"})
+	sized(s, 120, 40)
+
+	// type an id into the request form; the preview pane should reflect it before
+	// anything is sent.
+	s.Update(key("4"))
+	s.Update(key("2"))
+
+	view := s.View()
+	assert.Contains(t, view, "REQUEST PREVIEW")
+	assert.Contains(t, view, "https://api.petstore.io/pets/42")
+}
+
+func TestStudio_CopyMenuOffersCurlClicAndURL(t *testing.T) {
+	app := testApp()
+	app.Invocation = "clic ./petstore.yaml"
+	s := newStudio(context.Background(), app)
+	s.preselect([]string{"pets", "getById"})
+	sized(s, 120, 40)
+	s.Update(key("7")) // id = 7
+
+	s.openCopyMenu()
+	require.NotNil(t, s.copy)
+
+	var labels []string
+	for _, item := range s.copy.items {
+		labels = append(labels, item.label)
+	}
+	assert.Contains(t, labels, "request as curl")
+	assert.Contains(t, labels, "clic command")
+	assert.Contains(t, labels, "request URL")
+
+	// the clic command reproduces the request headlessly
+	for _, item := range s.copy.items {
+		if item.label == "clic command" {
+			assert.Equal(t, "clic ./petstore.yaml pets getById", item.value)
+		}
+		if item.label == "request as curl" {
+			assert.Contains(t, item.value, "curl ")
+			assert.Contains(t, item.value, "https://api.petstore.io/pets/7")
+		}
+	}
+
+	view := s.View()
+	assert.Contains(t, view, "to clipboard")
 }
 
 func TestStudio_TopLevelLeafIsSelectable(t *testing.T) {

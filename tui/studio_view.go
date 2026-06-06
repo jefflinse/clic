@@ -55,6 +55,9 @@ func (s *studio) View() string {
 	if s.pal != nil {
 		return s.renderPalette()
 	}
+	if s.copy != nil {
+		return s.renderCopyMenu()
+	}
 
 	groups := s.pane("GROUPS", s.renderGroups(s.gW-2), s.gW, s.colsH, s.focus == focusGroups)
 	commands := s.pane("COMMANDS", s.renderCommands(s.cW-2), s.cW, s.colsH, s.focus == focusCommands)
