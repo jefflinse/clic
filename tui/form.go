@@ -5,6 +5,7 @@
 package tui
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -78,14 +79,85 @@ func newBinding(f form.Field) *binding {
 	return b
 }
 
-// inputs returns the huh field(s) this binding contributes to the form. The
-// prefix qualifies nested labels with their parent path (e.g. "category.id") so
-// fields sharing a name across nesting levels stay distinguishable.
-func (b *binding) inputs(prefix string) []huh.Field {
+// qualLabel qualifies a field's label with its parent path (e.g. "category.id")
+// so fields sharing a name across nesting levels stay distinguishable.
+func (b *binding) qualLabel(prefix string) string {
 	label := b.field.Label()
 	if prefix != "" {
 		label = prefix + "." + label
 	}
+	return label
+}
+
+// studioInputs builds the huh field(s) for this binding within the embedded
+// studio form. It mirrors inputs but renders object arrays (which the blocking
+// PromptBody collects via repeatable sub-forms) as a single freeform text input
+// holding a JSON array, since the studio form cannot pause for sub-forms.
+func (b *binding) studioInputs(prefix string) []huh.Field {
+	switch {
+	case isComplexArray(b.field):
+		label := b.qualLabel(prefix)
+		return []huh.Field{
+			huh.NewText().
+				Title(label + " (JSON array)").
+				Description(b.field.Description).
+				Value(&b.str).
+				Validate(b.validateJSONArray),
+		}
+	case b.field.Type == form.ObjectField:
+		label := b.qualLabel(prefix)
+		inputs := []huh.Field{huh.NewNote().Title(label)}
+		for _, child := range b.children {
+			inputs = append(inputs, child.studioInputs(label)...)
+		}
+		return inputs
+	default:
+		return b.inputs(prefix)
+	}
+}
+
+// validateJSONArray accepts an empty value (for optional arrays) or a string
+// that parses as a JSON array.
+func (b *binding) validateJSONArray(s string) error {
+	if strings.TrimSpace(s) == "" {
+		if b.field.Required {
+			return fmt.Errorf("%s is required", b.field.Label())
+		}
+		return nil
+	}
+	var v []any
+	if err := json.Unmarshal([]byte(s), &v); err != nil {
+		return fmt.Errorf("must be a JSON array")
+	}
+	return nil
+}
+
+// hydrateComplexArrays parses the JSON typed into each object-array field's
+// holder into its collected elements, so assemble can emit them like the
+// sub-form path does. It descends into objects.
+func hydrateComplexArrays(bindings []*binding) {
+	for _, b := range bindings {
+		switch {
+		case b.field.Type == form.ObjectField:
+			hydrateComplexArrays(b.children)
+		case isComplexArray(b.field):
+			if strings.TrimSpace(b.str) == "" {
+				b.elements = nil
+				continue
+			}
+			var v []any
+			if err := json.Unmarshal([]byte(b.str), &v); err == nil {
+				b.elements = v
+			}
+		}
+	}
+}
+
+// inputs returns the huh field(s) this binding contributes to the form. The
+// prefix qualifies nested labels with their parent path (e.g. "category.id") so
+// fields sharing a name across nesting levels stay distinguishable.
+func (b *binding) inputs(prefix string) []huh.Field {
+	label := b.qualLabel(prefix)
 	switch b.field.Type {
 	case form.BooleanField:
 		return []huh.Field{huh.NewConfirm().Title(label).Description(b.field.Description).Value(&b.boolean)}

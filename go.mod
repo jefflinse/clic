@@ -3,10 +3,14 @@ module github.com/jefflinse/clic
 go 1.26
 
 require (
+	github.com/atotto/clipboard v0.1.4
 	github.com/aws/aws-sdk-go-v2 v1.32.6
 	github.com/aws/aws-sdk-go-v2/config v1.28.6
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.69.0
+	github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7
+	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/charmbracelet/huh v1.0.0
+	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/getkin/kin-openapi v0.140.0
 	github.com/goccy/go-yaml v1.13.4
 	github.com/spf13/cobra v1.10.2
@@ -15,7 +19,6 @@ require (
 )
 
 require (
-	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.47 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.21 // indirect
@@ -30,10 +33,7 @@ require (
 	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
-	github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7 // indirect
-	github.com/charmbracelet/bubbletea v1.3.6 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
-	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.9.3 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
