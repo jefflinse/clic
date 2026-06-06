@@ -123,3 +123,58 @@ func TestNewBinding_AppliesStringDefault(t *testing.T) {
 	})
 	assert.Equal(t, "available", assemble(bindings)["status"])
 }
+
+func TestIsComplexArray(t *testing.T) {
+	object := form.Field{Type: form.ArrayField, Item: &form.Field{Type: form.ObjectField}}
+	nested := form.Field{Type: form.ArrayField, Item: &form.Field{Type: form.ArrayField}}
+	scalar := form.Field{Type: form.ArrayField, Item: &form.Field{Type: form.StringField}}
+	untyped := form.Field{Type: form.ArrayField}
+
+	assert.True(t, isComplexArray(object))
+	assert.True(t, isComplexArray(nested))
+	assert.False(t, isComplexArray(scalar))
+	assert.False(t, isComplexArray(untyped))
+}
+
+func TestInputs_SkipsObjectArrayFromMainForm(t *testing.T) {
+	// an object array contributes nothing to the main form; it is collected
+	// afterward via the repeatable sub-form
+	b := newBinding(form.Field{
+		Name: "tags",
+		Type: form.ArrayField,
+		Item: &form.Field{Type: form.ObjectField, Fields: []form.Field{{Name: "id", Type: form.IntegerField}}},
+	})
+	assert.Empty(t, b.inputs(""))
+}
+
+func TestAssemble_ObjectArrayElements(t *testing.T) {
+	bindings := newBindings([]form.Field{
+		{
+			Name: "tags",
+			Type: form.ArrayField,
+			Item: &form.Field{Type: form.ObjectField, Fields: []form.Field{
+				{Name: "id", Type: form.IntegerField},
+				{Name: "name", Type: form.StringField},
+			}},
+		},
+	})
+	// simulate what the repeatable sub-form would collect
+	bindings[0].elements = []any{
+		map[string]any{"id": 1, "name": "tabby"},
+		map[string]any{"id": 2, "name": "calico"},
+	}
+
+	body := assemble(bindings)
+	assert.Equal(t, []any{
+		map[string]any{"id": 1, "name": "tabby"},
+		map[string]any{"id": 2, "name": "calico"},
+	}, body["tags"])
+}
+
+func TestAssemble_OmitsEmptyObjectArray(t *testing.T) {
+	bindings := newBindings([]form.Field{
+		{Name: "tags", Type: form.ArrayField, Item: &form.Field{Type: form.ObjectField}},
+	})
+	// no elements collected -> optional empty array is omitted
+	assert.NotContains(t, assemble(bindings), "tags")
+}

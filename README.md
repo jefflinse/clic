@@ -332,8 +332,9 @@ For operations that take a request body, pass `-i` (`--interactive`) to fill it
 in via a terminal form instead of hand-writing JSON. clic builds the form from
 the request-body schema: text inputs for strings and numbers, a confirm for
 booleans, a select for `enum` values, and grouped fields for nested objects.
-Required fields are validated, and optional fields left blank are omitted from
-the request.
+Scalar lists are entered one per line; lists of objects are gathered with a
+repeatable "add another?" prompt. Required fields are validated, and optional
+fields left blank are omitted from the request.
 
 ```bash
 $ clic -i ./petstore.openapi.yaml pets create

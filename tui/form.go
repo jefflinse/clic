@@ -19,15 +19,20 @@ import (
 func PromptBody(fields []form.Field) (map[string]any, error) {
 	bindings := newBindings(fields)
 
+	// scalar fields (and scalar arrays) are gathered in one form; arrays whose
+	// elements are objects can't be a single input, so they are collected after
+	// via a repeatable sub-form.
 	inputs := []huh.Field{}
 	for _, b := range bindings {
 		inputs = append(inputs, b.inputs("")...)
 	}
-	if len(inputs) == 0 {
-		return map[string]any{}, nil
+	if len(inputs) > 0 {
+		if err := huh.NewForm(huh.NewGroup(inputs...)).Run(); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := huh.NewForm(huh.NewGroup(inputs...)).Run(); err != nil {
+	if err := collectComplexArrays(bindings); err != nil {
 		return nil, err
 	}
 
@@ -35,12 +40,20 @@ func PromptBody(fields []form.Field) (map[string]any, error) {
 }
 
 // binding pairs a field with the holder variables huh writes into, plus the
-// child bindings of a nested object.
+// child bindings of a nested object and the collected entries of an object array.
 type binding struct {
 	field    form.Field
 	str      string
 	boolean  bool
 	children []*binding
+	elements []any
+}
+
+// isComplexArray reports whether a field is an array whose element type cannot
+// be entered as a single line of text (i.e. an object or nested array).
+func isComplexArray(f form.Field) bool {
+	return f.Type == form.ArrayField && f.Item != nil &&
+		(f.Item.Type == form.ObjectField || f.Item.Type == form.ArrayField)
 }
 
 func newBindings(fields []form.Field) []*binding {
@@ -87,6 +100,10 @@ func (b *binding) inputs(prefix string) []huh.Field {
 		}
 
 	case form.ArrayField:
+		if isComplexArray(b.field) {
+			// collected after the main form via a repeatable sub-form
+			return nil
+		}
 		return []huh.Field{
 			huh.NewText().
 				Title(label + " (one per line)").
@@ -161,6 +178,9 @@ func (b *binding) value() any {
 	case form.ObjectField:
 		return assemble(b.children)
 	case form.ArrayField:
+		if isComplexArray(b.field) {
+			return b.elements
+		}
 		return b.arrayValue()
 	default:
 		return b.str
@@ -216,7 +236,60 @@ func (b *binding) empty() bool {
 			}
 		}
 		return true
+	case form.ArrayField:
+		if isComplexArray(b.field) {
+			return len(b.elements) == 0
+		}
+		return strings.TrimSpace(b.str) == ""
 	default:
 		return strings.TrimSpace(b.str) == ""
+	}
+}
+
+// collectComplexArrays walks the binding tree and, for each object-array field,
+// runs a repeatable sub-form to gather its entries. It descends into objects so
+// nested object arrays are collected too.
+func collectComplexArrays(bindings []*binding) error {
+	for _, b := range bindings {
+		switch {
+		case b.field.Type == form.ObjectField:
+			if err := collectComplexArrays(b.children); err != nil {
+				return err
+			}
+		case isComplexArray(b.field):
+			elements, err := promptElements(b.field)
+			if err != nil {
+				return err
+			}
+			b.elements = elements
+		}
+	}
+	return nil
+}
+
+// promptElements repeatedly asks whether to add another entry to an object
+// array and, for each, runs a sub-form for the element's fields.
+func promptElements(field form.Field) ([]any, error) {
+	elements := []any{}
+	for {
+		add := false
+		prompt := fmt.Sprintf("Add an entry to %q?", field.Name)
+		if len(elements) > 0 {
+			prompt = fmt.Sprintf("Add another entry to %q? (%d so far)", field.Name, len(elements))
+		}
+		if err := huh.NewForm(huh.NewGroup(huh.NewConfirm().Title(prompt).Value(&add))).Run(); err != nil {
+			return nil, err
+		}
+		if !add {
+			return elements, nil
+		}
+
+		elem := newBinding(*field.Item)
+		if sub := elem.inputs(field.Name); len(sub) > 0 {
+			if err := huh.NewForm(huh.NewGroup(sub...)).Run(); err != nil {
+				return nil, err
+			}
+		}
+		elements = append(elements, elem.value())
 	}
 }
