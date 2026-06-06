@@ -17,6 +17,7 @@ clic lets you quickly define, generate, and run custom CLI tools using simple te
   - [noop - do nothing](#noop)
   - [rest - make a request to a REST endpoint](#rest)
 - [OpenAPI](#openapi)
+- [Interactive studio](#interactive-studio)
 - [Roadmap](#roadmap)
 
 ## Overview
@@ -324,25 +325,7 @@ Parameters map as follows:
 
 - **path** parameters → required positional arguments, substituted into the URL
 - **query** and **header** parameters → flags (required ones become required flags)
-- **request body** → `--body` (inline JSON or `@file.json`), or an interactive form with `-i` (see [Interactive input](#interactive-input))
-
-### Interactive input
-
-For operations that take a request body, pass `-i` (`--interactive`) to fill it
-in via a terminal form instead of hand-writing JSON. clic builds the form from
-the request-body schema: text inputs for strings and numbers, a confirm for
-booleans, a select for `enum` values, and grouped fields for nested objects.
-Scalar lists are entered one per line; lists of objects are gathered with a
-repeatable "add another?" prompt. Required fields are validated, and optional
-fields left blank are omitted from the request.
-
-```bash
-$ clic -i ./petstore.openapi.yaml pets create
-# prompts for name, status (a select), age, tags, ... then sends the request
-```
-
-`--body` still works and takes precedence — `-i` only prompts when no `--body`
-is supplied.
+- **request body** → `--body` (inline JSON or `@file.json`), or built interactively in the [studio](#interactive-studio) with `-i`
 
 ### Server and authentication
 
@@ -364,6 +347,54 @@ $ clic --server https://staging.example.com ./api.yaml users get 42
 
 > **Note:** OpenAPI 3.0 and 3.1 are supported (Swagger/OpenAPI 2.0 is not).
 
+## Interactive studio
+
+Pass the global `-i` (`--interactive`) flag **before the spec** to open the
+clic studio: a full-screen terminal client for any clic or OpenAPI app — think
+Postman, in your terminal, driven entirely by the keyboard.
+
+```bash
+$ clic -i ./petstore.openapi.yaml          # open the studio at the command tree
+$ clic -i ./petstore.openapi.yaml pets get # open it focused on `pets get`
+```
+
+The studio lays the app out in k9s-style columns:
+
+```
+┌ petstore ───────────────────────────────────── ⇆ api.petstore.io ┐
+│ GROUPS        │ COMMANDS          │ REQUEST  GET /pets/{id}        │
+│ ▸ pets        │ • getById   ◀     │ PATH                          │
+│ ▸ store       │ • list            │  id   ▏42                     │
+│ ▸ user        │ • create          │ QUERY                         │
+│               │                   │  verbose  [x]                 │
+├───────────────┴───────────────────┴───────────────────────────────┤
+│  200 OK · 84ms · 1.2kB · application/json · pretty/headers/raw     │
+│ {                                                                 │
+│   "id": 42,                                                       │
+│   "name": "Rex"                                                   │
+│ }                                                                 │
+│ ↑↓ scroll · tab view · ^s resend · / find · ? help                │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+- **Browse** the command tree (`↑↓`/`jk` within a column, `←→`/`hl` between
+  columns, `enter` to drill in).
+- **Build** the request in a schema-driven form — text inputs for strings and
+  numbers, a toggle for booleans, a select for `enum` values, grouped fields for
+  nested objects, scalar lists one-per-line, and a raw-body editor for free-form
+  JSON. Required fields are validated; blank optionals are omitted.
+- **Send** with `ctrl+s` and read a rich response: a colored status badge,
+  latency and size, and syntax-highlighted JSON you can scroll, with
+  `tab` cycling pretty / headers / raw views. Press `y` to copy it.
+- **Jump** anywhere with the command palette (`/` or `ctrl+p`) — a fuzzy finder
+  over every command in the app, handy for large OpenAPI specs.
+- Press `?` for the full key reference.
+
+The studio works for every provider, not just REST: `exec` commands run locally
+and stream their output, `lambda` commands show their payload. Outside the
+studio, every command is still a plain subcommand you can script (flags and
+`--body` work headlessly and take precedence).
+
 ## Roadmap
 
 A very rough list of features and improvements I have in mind:
@@ -376,5 +407,7 @@ A very rough list of features and improvements I have in mind:
 - Support for producing binaries/scripts for other languages
 - registry: cache latest spec content so app can be run even if spec is moved or deleted
 - Add run protection for spec files obtained from the internet
+- studio: request history and replay
+- studio: edit server/auth inline, and save/export filled requests
 - Providers for Azure Functions and Google Cloud Functions
 - Support for specifying environment variables
