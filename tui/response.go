@@ -73,11 +73,13 @@ func (r *responsePane) setPreview(pv *provider.RequestPreview) {
 	}
 }
 
-func (r *responsePane) cycleTab() {
+// cycleTab moves the response view forward (dir +1) or backward (dir -1)
+// through the pretty/headers/raw/request tabs.
+func (r *responsePane) cycleTab(dir int) {
 	if r.result == nil {
 		return
 	}
-	r.tab = (r.tab + 1) % respTabCount
+	r.tab = respTab((int(r.tab) + dir + respTabCount) % respTabCount)
 	r.vp.GotoTop()
 	r.reflow()
 }

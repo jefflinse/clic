@@ -280,9 +280,9 @@ func (s *studio) preselect(path []string) {
 		}
 		s.selectLeafFromEntries()
 		if s.req != nil && s.req.hasInputs() {
-			s.focus = focusRequest
+			s.setFocus(focusRequest)
 		} else {
-			s.focus = focusCommands
+			s.setFocus(focusCommands)
 		}
 		return
 	}
@@ -373,6 +373,23 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// tab/shift+tab cycle the focus ring consistently from every pane; esc steps
+	// back toward the command tree. In the request form, tab/shift+tab navigate
+	// fields first and only cross pane boundaries at the form's edges, so they
+	// fall through to handleRequestKey.
+	switch msg.String() {
+	case "tab":
+		if s.focus != focusRequest {
+			return s, s.cycleFocus(1)
+		}
+	case "shift+tab":
+		if s.focus != focusRequest {
+			return s, s.cycleFocus(-1)
+		}
+	case "esc":
+		return s, s.stepBack()
+	}
+
 	switch s.focus {
 	case focusGroups:
 		return s, s.handleGroupsKey(msg)
@@ -384,6 +401,45 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return s, s.handleResponseKey(msg)
 	}
 	return s, nil
+}
+
+// focusRing is the order tab/shift+tab cycle through and esc steps back along.
+var focusRing = []focusZone{focusGroups, focusCommands, focusRequest, focusResponse}
+
+// setFocus is the single mutator for the focused pane. The embedded form keeps
+// its own field position (like any form remembers your cursor), so re-entering
+// the request pane lands where you left it; tab/shift+tab carry you out at the
+// form's edges.
+func (s *studio) setFocus(z focusZone) {
+	s.focus = z
+}
+
+// cycleFocus moves focus forward (dir +1) or backward (dir -1) through the ring,
+// wrapping at the ends.
+func (s *studio) cycleFocus(dir int) tea.Cmd {
+	cur := 0
+	for i, z := range focusRing {
+		if z == s.focus {
+			cur = i
+			break
+		}
+	}
+	s.setFocus(focusRing[(cur+dir+len(focusRing))%len(focusRing)])
+	return nil
+}
+
+// stepBack moves focus one pane toward the command tree, stopping at Groups (no
+// wrap). It is the universal "back out" gesture, bound to esc.
+func (s *studio) stepBack() tea.Cmd {
+	switch s.focus {
+	case focusCommands:
+		s.setFocus(focusGroups)
+	case focusRequest:
+		s.setFocus(focusCommands)
+	case focusResponse:
+		s.setFocus(focusRequest)
+	}
+	return nil
 }
 
 func (s *studio) handleGroupsKey(msg tea.KeyMsg) tea.Cmd {
@@ -400,8 +456,8 @@ func (s *studio) handleGroupsKey(msg tea.KeyMsg) tea.Cmd {
 			s.syncEntries()
 			return s.selectLeafFromEntries()
 		}
-	case "right", "l", "enter", "tab":
-		s.focus = focusCommands
+	case "right", "l", "enter":
+		s.setFocus(focusCommands)
 	}
 	return nil
 }
@@ -414,11 +470,15 @@ func (s *studio) handleCommandsKey(msg tea.KeyMsg) tea.Cmd {
 	case "down", "j":
 		s.moveCommand(1)
 		return s.selectLeafFromEntries()
-	case "left", "h", "shift+tab":
-		s.focus = focusGroups
-	case "right", "l", "enter", "tab":
+	case "left", "h":
+		s.setFocus(focusGroups)
+	case "right", "l":
+		s.setFocus(focusRequest)
+	case "enter":
+		// enter is "do the thing": edit a command that has inputs, run one that
+		// doesn't.
 		if s.req != nil && s.req.hasInputs() {
-			s.focus = focusRequest
+			s.setFocus(focusRequest)
 		} else {
 			return s.send()
 		}
@@ -438,31 +498,77 @@ func (s *studio) moveCommand(dir int) {
 }
 
 func (s *studio) handleRequestKey(msg tea.KeyMsg) tea.Cmd {
-	switch msg.String() {
-	case "esc":
-		s.focus = focusCommands
+	// a command with no inputs is still a focus stop: it participates in the ring
+	// and offers a spatial path to the response.
+	if s.req == nil || s.req.form == nil {
+		switch msg.String() {
+		case "tab":
+			return s.cycleFocus(1)
+		case "shift+tab":
+			return s.cycleFocus(-1)
+		case "left", "h":
+			s.setFocus(focusCommands)
+		case "right", "l":
+			s.setFocus(focusResponse)
+		case "enter":
+			return s.send()
+		}
 		return nil
 	}
+
+	// Embedded huh disables tab on the last field and shift+tab on the first, so
+	// the form never moves past its own edges — it returns no command there. We
+	// use that nil command as the signal to cross the pane boundary: tab off the
+	// last field flows forward to the response, shift+tab off the first flows
+	// back to commands. Mid-form, navigation returns a command and we stay put.
+	switch msg.String() {
+	case "tab":
+		// A non-nil command means huh moved between fields, so stay. A nil command
+		// means tab did nothing: either a required field blocked navigation (huh
+		// now shows its error — stay so the user can fix it) or we are genuinely on
+		// the last field, where we carry focus forward into the response.
+		if cmd := s.updateForm(msg); cmd != nil {
+			return cmd
+		}
+		if len(s.req.form.Errors()) > 0 {
+			return nil
+		}
+		s.setFocus(focusResponse)
+		return nil
+	case "shift+tab":
+		// shift+tab never validates; a nil command means we are on the first field,
+		// so step back to commands. Otherwise huh moved between fields.
+		if cmd := s.updateForm(msg); cmd != nil {
+			return cmd
+		}
+		s.setFocus(focusCommands)
+		return nil
+	}
+	return s.updateForm(msg)
+}
+
+// updateForm feeds a message to the embedded huh form and refreshes the live
+// preview on edits. It is the single chokepoint for form updates so async huh
+// messages (field transitions, cursor blink) are routed consistently.
+func (s *studio) updateForm(msg tea.Msg) tea.Cmd {
 	if s.req == nil || s.req.form == nil {
 		return nil
 	}
 	form, cmd := s.req.form.Update(msg)
 	s.req.form = asHuhForm(form, s.req.form)
-	s.refreshPreview()
+	if _, ok := msg.(tea.KeyMsg); ok {
+		s.refreshPreview()
+	}
 	return cmd
 }
 
 func (s *studio) handleResponseKey(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
-	case "esc", "left", "h":
-		if s.req != nil && s.req.hasInputs() {
-			s.focus = focusRequest
-		} else {
-			s.focus = focusCommands
-		}
+	case "left", "h":
+		s.resp.cycleTab(-1)
 		return nil
-	case "tab":
-		s.resp.cycleTab()
+	case "right", "l":
+		s.resp.cycleTab(1)
 		return nil
 	case "y":
 		s.yankResponse()
@@ -483,15 +589,14 @@ func (s *studio) yankResponse() {
 	s.flash = "copied response to clipboard"
 }
 
-// forward routes a non-key message to whichever sub-model is active.
+// forward routes a non-key message (cursor blink, huh's async group transitions,
+// etc.) to whichever sub-model is active. Request updates go through updateForm
+// so a completion delivered by one of those async messages still carries focus
+// to the response.
 func (s *studio) forward(msg tea.Msg) tea.Cmd {
 	switch s.focus {
 	case focusRequest:
-		if s.req != nil && s.req.form != nil {
-			form, cmd := s.req.form.Update(msg)
-			s.req.form = asHuhForm(form, s.req.form)
-			return cmd
-		}
+		return s.updateForm(msg)
 	case focusResponse:
 		return s.resp.update(msg)
 	}

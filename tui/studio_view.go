@@ -123,13 +123,13 @@ func (s *studio) helpBar() string {
 	var hints [][2]string
 	switch s.focus {
 	case focusGroups:
-		hints = [][2]string{{"↑↓", "groups"}, {"→", "commands"}, {"^s", "run"}, {"^c", "quit"}}
+		hints = [][2]string{{"↑↓", "groups"}, {"tab", "panes"}, {"→", "commands"}, {"^s", "run"}}
 	case focusCommands:
-		hints = [][2]string{{"↑↓", "select"}, {"←", "groups"}, {"→/⏎", "edit"}, {"^s", "run"}, {"^c", "quit"}}
+		hints = [][2]string{{"↑↓", "select"}, {"tab", "panes"}, {"←→", "columns"}, {"⏎", "edit/run"}}
 	case focusRequest:
-		hints = [][2]string{{"tab", "next field"}, {"^s", "send"}, {"esc", "back"}, {"^c", "quit"}}
+		hints = [][2]string{{"tab", "fields → panes"}, {"esc", "back"}, {"^s", "send"}}
 	case focusResponse:
-		hints = [][2]string{{"↑↓", "scroll"}, {"tab", "view"}, {"c", "copy"}, {"x", "capture"}, {"^s", "resend"}}
+		hints = [][2]string{{"↑↓", "scroll"}, {"←→", "view"}, {"tab", "panes"}, {"c", "copy"}, {"x", "capture"}, {"^s", "resend"}}
 	}
 
 	// always advertise the palette and help, the two non-obvious global keys

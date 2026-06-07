@@ -373,12 +373,15 @@ The studio lays the app out in k9s-style columns:
 │   "id": 42,                                                       │
 │   "name": "Rex"                                                   │
 │ }                                                                 │
-│ ↑↓ scroll · tab view · c copy · x capture · ^s resend · ? help    │
+│ ↑↓ scroll · ←→ view · c copy · x capture · ^s resend · ? help     │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-- **Browse** the command tree (`↑↓`/`jk` within a column, `←→`/`hl` between
-  columns, `enter` to drill in).
+- **Navigate** with one consistent model: `tab`/`shift+tab` cycle through the
+  panes (groups → commands → request → response and back), `↑↓`/`jk` move within
+  a column, `←→`/`hl` move between columns, `esc` steps back toward the command
+  tree, and `enter` drills in or runs. In the request form, `tab`/`shift+tab`
+  move between fields and carry you on to the next pane at the form's edges.
 - **Build** the request in a schema-driven form — text inputs for strings and
   numbers, a toggle for booleans, a select for `enum` values, grouped fields for
   nested objects, scalar lists one-per-line, and a raw-body editor for free-form
@@ -387,8 +390,8 @@ The studio lays the app out in k9s-style columns:
   resolved method, URL, headers, and body *before* you send, and keeps it on a
   `request` tab afterwards so you can always see what went out.
 - **Send** with `ctrl+s` and read a rich response: a colored status badge,
-  latency and size, and syntax-highlighted JSON you can scroll, with
-  `tab` cycling pretty / headers / raw / request views.
+  latency and size, and syntax-highlighted JSON you can scroll. In the response,
+  `←→` switch between the pretty / headers / raw / request views and `↑↓` scroll.
 - **Copy** (`c`) the current request as a ready-to-run `curl` command, as the
   equivalent headless `clic` invocation, as just the URL, or copy the response
   body — straight to your clipboard.

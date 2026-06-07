@@ -136,9 +136,9 @@ func (s *studio) jumpTo(ref leafRef) tea.Cmd {
 	s.commandIdx = ref.entryIdx
 	cmd := s.selectLeafFromEntries()
 	if s.req != nil && s.req.hasInputs() {
-		s.focus = focusRequest
+		s.setFocus(focusRequest)
 	} else {
-		s.focus = focusCommands
+		s.setFocus(focusCommands)
 	}
 	return cmd
 }
@@ -149,17 +149,17 @@ func (s *studio) jumpTo(ref leafRef) tea.Cmd {
 func (s *studio) renderHelp() string {
 	type row struct{ key, desc string }
 	rows := []row{
-		{"↑ ↓ / j k", "move within a column"},
-		{"← → / h l", "move between columns"},
-		{"enter", "drill in / edit the request"},
-		{"/  ·  ctrl+p", "command palette (jump anywhere)"},
+		{"tab ⁄ shift+tab", "cycle panes (move between form fields)"},
+		{"↑ ↓ / j k", "select in a list · scroll the response"},
+		{"← → / h l", "move between columns · switch response view"},
+		{"enter", "drill in / edit the request / run"},
+		{"esc", "step back toward the command tree"},
 		{"ctrl+s", "send the request"},
-		{"tab", "cycle response views (pretty/headers/raw/request)"},
+		{"/  ·  ctrl+p", "command palette (jump anywhere)"},
 		{"c", "copy request as curl / clic / url, or response"},
 		{"x", "capture a response value as a {{variable}}"},
 		{"v", "list captured variables"},
 		{"y", "copy response body to clipboard"},
-		{"esc", "step back a column"},
 		{"?", "toggle this help"},
 		{"ctrl+c", "quit"},
 	}
