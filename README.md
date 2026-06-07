@@ -329,13 +329,14 @@ Parameters map as follows:
 
 ### Server and authentication
 
-The first `servers` entry becomes the default base URL, overridable with the global `--server` flag. Security schemes (everything except OAuth2) surface as global flags, each with a `CLIC_*` environment-variable fallback:
+The first `servers` entry becomes the default base URL, overridable with the global `--server` flag. Security schemes surface as global flags, each with a `CLIC_*` environment-variable fallback:
 
 | Scheme | Flag(s) | Env |
 | ------ | ------- | --- |
 | HTTP bearer | `--token` | `CLIC_TOKEN` |
 | HTTP basic | `--username` / `--password` | `CLIC_USERNAME` / `CLIC_PASSWORD` |
 | API key | `--api-key` | `CLIC_API_KEY` |
+| OAuth2 | `--client-id` / `--client-secret` / `--scopes` | `CLIC_CLIENT_ID` / `CLIC_CLIENT_SECRET` / `CLIC_SCOPES` |
 
 clic's global flags (`--server`, `-i`, and the auth flags) are clic's own and must be placed **before** the spec; everything after the spec is passed through to the generated app as its own arguments. This keeps them from ever colliding with a parameter of the same name in the spec.
 
@@ -344,6 +345,24 @@ $ clic --token "$MY_TOKEN" ./api.yaml users get 42
 $ CLIC_TOKEN="$MY_TOKEN" clic ./api.yaml users get 42
 $ clic --server https://staging.example.com ./api.yaml users get 42
 ```
+
+#### OAuth2
+
+clic supports two OAuth2 grant flows from an OpenAPI `oauth2` security scheme (it reads the `tokenUrl`/`authorizationUrl`/`scopes` from the spec):
+
+- **Client credentials** (machine-to-machine) — fully non-interactive. Provide `--client-id`/`--client-secret` (or `CLIC_CLIENT_ID`/`CLIC_CLIENT_SECRET`); clic fetches and caches an access token automatically on first use.
+- **Authorization code + PKCE** (user sign-in) — opens your browser to consent, catches the redirect on a loopback server, and caches the token (with its refresh token). When a command needs it and a terminal is attached, clic launches the browser automatically; in scripts/CI it asks you to run `clic login` first.
+
+```bash
+# explicitly sign in (and cache the token) ahead of time
+$ clic login ./api.yaml --client-id "$ID"
+# run commands — the cached token is used and silently refreshed
+$ clic ./api.yaml users get 42
+# clear the cached token
+$ clic logout ./api.yaml
+```
+
+Tokens are cached under `~/.clic/tokens/` (file mode `0600`), keyed by issuer + client + scopes. Prefer `CLIC_CLIENT_SECRET` over `--client-secret` so the secret isn't visible in your process list. The authorization-code redirect defaults to `http://127.0.0.1:9799/callback` (override with `--redirect-url`; it must be registered with your provider). When a spec declares multiple flows, pick one with `--oauth-flow client_credentials|authorization_code`. In the [studio](#interactive-studio), press `A` to sign in; the top bar shows `🔒`/`🔓` auth status.
 
 > **Note:** OpenAPI 3.0 and 3.1 are supported (Swagger/OpenAPI 2.0 is not).
 
@@ -407,6 +426,9 @@ The studio lays the app out in k9s-style columns:
   the JSON by path) as a `{{variable}}`, then reference `{{name}}` in any later
   command's field — it's substituted on send. `v` lists what you've captured.
   Build one request from the output of another without leaving the keyboard.
+- **Authenticate** OAuth2 apps with `A` — runs the client-credentials fetch or
+  the browser sign-in (authorization code + PKCE) without leaving the studio; the
+  top bar shows `🔒`/`🔓` status and the token is shared with the headless CLI.
 - **Jump** anywhere with the command palette (`ctrl+p`, or `/` outside the
   response pane) — a fuzzy finder over every command in the app, handy for large
   OpenAPI specs.
@@ -423,7 +445,7 @@ interactively.
 
 A very rough list of features and improvements I have in mind:
 
-- OAuth2 support for OpenAPI-generated CLIs
+- OAuth2 device-code flow (client-credentials and authorization-code already supported)
 - App-level and command-level versioning
 - Support for app- and command-level variables
 - Support directory-based spec composition (a la Terraform)
