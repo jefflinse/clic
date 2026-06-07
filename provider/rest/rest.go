@@ -80,21 +80,23 @@ func (s *Spec) Configure(cmd *cobra.Command) {
 			return err
 		}
 
-		req, err := s.buildRequest(cmd.Context(), body)
+		res, err := s.do(cmd.Context(), body)
 		if err != nil {
 			return err
 		}
 
-		code, _, respBody, err := doRequest(req)
-		if err != nil {
-			return err
+		// when a result sink is present (the contract-test runner), hand back the
+		// structured result instead of printing.
+		if sink := provider.ResultSinkFromContext(cmd.Context()); sink != nil {
+			sink.Result = res
+			return nil
 		}
 
 		if s.PrintStatus {
-			fmt.Println(code)
+			fmt.Println(res.Status)
 		}
 
-		fmt.Println(string(respBody))
+		fmt.Println(string(res.Body))
 		return nil
 	}
 }

@@ -55,6 +55,7 @@ func rootCmd() *cobra.Command {
 		pruneRegistryCmd(),
 		loginCmd(),
 		logoutCmd(),
+		testCmd(),
 		versionCmd(),
 	)
 
