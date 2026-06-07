@@ -373,7 +373,7 @@ The studio lays the app out in k9s-style columns:
 │   "id": 42,                                                       │
 │   "name": "Rex"                                                   │
 │ }                                                                 │
-│ ↑↓ scroll · ←→ view · c copy · x capture · ^s resend · ? help     │
+│ ↑↓ scroll · / find · f filter · o open · c copy · ^s resend · ?    │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -392,6 +392,14 @@ The studio lays the app out in k9s-style columns:
 - **Send** with `ctrl+s` and read a rich response: a colored status badge,
   latency and size, and syntax-highlighted JSON you can scroll. In the response,
   `←→` switch between the pretty / headers / raw / request views and `↑↓` scroll.
+- **Search** the response with `/` — incremental, case-insensitive, with the hit
+  count in the status line; `n`/`N` jump between matches. **Filter** it with `f`:
+  type a [jq](https://jqlang.github.io/jq/) program (e.g. `.items[].id`) and the
+  body is transformed in place, evaluated by an embedded jq — no external `jq`
+  needed. `esc` peels off the search, then the filter.
+- **Open** the response in your `$EDITOR` with `o` (honors `$VISUAL`/`$EDITOR`,
+  with a temp file named by content type) — for when you want full editor power
+  over a payload.
 - **Copy** (`c`) the current request as a ready-to-run `curl` command, as the
   equivalent headless `clic` invocation, as just the URL, or copy the response
   body — straight to your clipboard.
@@ -399,8 +407,9 @@ The studio lays the app out in k9s-style columns:
   the JSON by path) as a `{{variable}}`, then reference `{{name}}` in any later
   command's field — it's substituted on send. `v` lists what you've captured.
   Build one request from the output of another without leaving the keyboard.
-- **Jump** anywhere with the command palette (`/` or `ctrl+p`) — a fuzzy finder
-  over every command in the app, handy for large OpenAPI specs.
+- **Jump** anywhere with the command palette (`ctrl+p`, or `/` outside the
+  response pane) — a fuzzy finder over every command in the app, handy for large
+  OpenAPI specs.
 - Press `?` for the full key reference.
 
 The studio works for every provider, not just REST: `exec` commands run locally

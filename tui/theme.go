@@ -64,6 +64,7 @@ type theme struct {
 	size    lipgloss.Style
 	hdrKey  lipgloss.Style
 	hdrVal  lipgloss.Style
+	match   lipgloss.Style // a search hit within the response body
 
 	// json
 	json jsonStyles
@@ -96,6 +97,7 @@ func newTheme() theme {
 		size:    base.Foreground(p.muted),
 		hdrKey:  base.Foreground(p.accent2),
 		hdrVal:  base.Foreground(p.text),
+		match:   base.Bold(true).Foreground(lipgloss.Color("#0B1020")).Background(p.accent2),
 
 		json: jsonStyles{
 			key:     base.Foreground(p.accent2),

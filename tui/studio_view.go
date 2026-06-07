@@ -120,6 +120,16 @@ func (s *studio) topBar() string {
 }
 
 func (s *studio) helpBar() string {
+	// the inline search / jq-filter input takes over the bottom row while open
+	if s.editing != nil {
+		label := "/"
+		if s.editing.kind == editFilter {
+			label = "jq ▸"
+		}
+		prompt := s.th.helpKey.Render(label+" ") + s.th.title.Render(s.editing.buf) + s.th.json.boolean.Render("▌")
+		return clip(prompt+s.th.help.Render("    ⏎ apply · esc cancel"), s.width, 1)
+	}
+
 	var hints [][2]string
 	switch s.focus {
 	case focusGroups:
@@ -129,11 +139,12 @@ func (s *studio) helpBar() string {
 	case focusRequest:
 		hints = [][2]string{{"tab", "fields → panes"}, {"esc", "back"}, {"^s", "send"}}
 	case focusResponse:
-		hints = [][2]string{{"↑↓", "scroll"}, {"←→", "view"}, {"tab", "panes"}, {"c", "copy"}, {"x", "capture"}, {"^s", "resend"}}
+		hints = [][2]string{{"↑↓", "scroll"}, {"←→", "view"}, {"/", "find"}, {"f", "filter"}, {"o", "open"}, {"c", "copy"}, {"^s", "resend"}}
 	}
 
-	// always advertise the palette and help, the two non-obvious global keys
-	hints = append(hints, [2]string{"/", "find"}, [2]string{"?", "help"})
+	// always advertise the palette and help, the two non-obvious global keys.
+	// the palette is shown as ^p since '/' doubles as response search.
+	hints = append(hints, [2]string{"^p", "palette"}, [2]string{"?", "help"})
 
 	parts := make([]string, 0, len(hints))
 	for _, h := range hints {

@@ -25,9 +25,26 @@ const (
 // respTabCount is the number of cyclable response views.
 const respTabCount = 4
 
+// searchState backs the in-pane incremental search ('/'): the query, the line
+// indices that contain a hit, and which hit is currently centered.
+type searchState struct {
+	query string
+	lines []int
+	cur   int
+}
+
+// filterState backs the jq filter ('f'): the program, its evaluated output, and
+// any parse/run error. An empty program means no filter is active.
+type filterState struct {
+	program string
+	out     []byte
+	err     error
+}
+
 // responsePane renders the outcome of the last execution: a summary line (status
 // badge, latency, size) above a scrollable body shown as pretty/highlighted
-// JSON, raw text, or response headers.
+// JSON, raw text, or response headers. A jq filter can transform the body in
+// place, and an incremental search highlights and jumps between hits.
 type responsePane struct {
 	vp      viewport.Model
 	th      theme
@@ -35,6 +52,8 @@ type responsePane struct {
 	preview *provider.RequestPreview
 	err     error
 	tab     respTab
+	search  searchState
+	filter  filterState
 	width   int
 	height  int
 }
@@ -55,6 +74,9 @@ func (r *responsePane) setResult(res *provider.Result) {
 	if res != nil && res.Kind == provider.ResultHTTP {
 		r.tab = tabPretty
 	}
+	// a fresh result invalidates any search/filter from the previous one
+	r.search = searchState{}
+	r.filter = filterState{}
 	r.vp.GotoTop()
 	r.reflow()
 }
@@ -104,11 +126,18 @@ func (r *responsePane) body() string {
 		return r.renderPreview()
 	}
 
+	// an active search renders the body as plain text with hits highlighted, so
+	// matches are visible regardless of JSON coloring and align with the line
+	// indices used for jumping.
+	if r.search.query != "" {
+		return r.renderSearch()
+	}
+
 	switch r.tab {
 	case tabHeaders:
 		return r.renderHeaders()
 	case tabRaw:
-		return string(r.result.Body)
+		return string(r.sourceBytes())
 	case tabRequest:
 		return r.renderPreview()
 	default:
@@ -116,8 +145,17 @@ func (r *responsePane) body() string {
 	}
 }
 
+// sourceBytes is the body the views operate on: the jq-filtered output when a
+// filter is active and valid, otherwise the raw response body.
+func (r *responsePane) sourceBytes() []byte {
+	if r.filter.program != "" && r.filter.err == nil {
+		return r.filter.out
+	}
+	return r.result.Body
+}
+
 func (r *responsePane) renderBody() string {
-	body := r.result.Body
+	body := r.sourceBytes()
 	if len(body) == 0 {
 		return r.th.desc.Render("(empty response)")
 	}
@@ -128,6 +166,106 @@ func (r *responsePane) renderBody() string {
 		}
 	}
 	return string(body)
+}
+
+// searchText is the plain-text the incremental search runs over: pretty-printed
+// JSON when the body parses, otherwise the body verbatim. It is independent of
+// the active tab so '/' always searches the response payload.
+func (r *responsePane) searchText() string {
+	src := r.sourceBytes()
+	if pretty, ok := prettyPlainJSON(src); ok {
+		return pretty
+	}
+	return string(src)
+}
+
+// renderSearch returns the search text with every hit wrapped in the match
+// style.
+func (r *responsePane) renderSearch() string {
+	lines := strings.Split(r.searchText(), "\n")
+	for i, line := range lines {
+		if hl, ok := highlightMatches(line, r.search.query, r.th.match); ok {
+			lines[i] = hl
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// setSearch applies a query, recording the lines that contain a hit and jumping
+// the viewport to the first one. An empty query clears the search.
+func (r *responsePane) setSearch(query string) {
+	r.search.query = query
+	r.search.lines = nil
+	r.search.cur = 0
+	if query != "" {
+		needle := strings.ToLower(query)
+		for i, line := range strings.Split(r.searchText(), "\n") {
+			if strings.Contains(strings.ToLower(line), needle) {
+				r.search.lines = append(r.search.lines, i)
+			}
+		}
+	}
+	r.reflow()
+	r.scrollToMatch()
+}
+
+// nextMatch moves to the next (dir +1) or previous (dir -1) hit, wrapping.
+func (r *responsePane) nextMatch(dir int) {
+	if len(r.search.lines) == 0 {
+		return
+	}
+	r.search.cur = (r.search.cur + dir + len(r.search.lines)) % len(r.search.lines)
+	r.scrollToMatch()
+}
+
+func (r *responsePane) scrollToMatch() {
+	if len(r.search.lines) == 0 {
+		return
+	}
+	r.vp.SetYOffset(max(0, r.search.lines[r.search.cur]-1))
+}
+
+func (r *responsePane) clearSearch() {
+	r.search = searchState{}
+	r.reflow()
+}
+
+// applyFilter runs a jq program over the response body and shows the result in
+// place. An empty program clears the filter; a parse/run error is retained and
+// surfaced in the summary line while the body keeps showing the raw response.
+func (r *responsePane) applyFilter(program string) {
+	r.filter = filterState{program: program}
+	if program != "" {
+		out, err := runJQ(program, r.result.Body)
+		if err != nil {
+			r.filter.err = err
+		} else {
+			r.filter.out = out
+		}
+	}
+	r.search = searchState{} // line indices no longer align with the new body
+	r.vp.GotoTop()
+	r.reflow()
+}
+
+func (r *responsePane) clearFilter() {
+	r.filter = filterState{}
+	r.vp.GotoTop()
+	r.reflow()
+}
+
+// clearActive dismisses an active search or filter (search first), reporting
+// whether anything was cleared. It backs esc's "peel one layer" behavior.
+func (r *responsePane) clearActive() bool {
+	switch {
+	case r.search.query != "":
+		r.clearSearch()
+		return true
+	case r.filter.program != "":
+		r.clearFilter()
+		return true
+	}
+	return false
 }
 
 func (r *responsePane) renderHeaders() string {
@@ -174,6 +312,9 @@ func (r *responsePane) summary() string {
 		parts = append(parts, r.th.size.Render(shortContentType(r.result.ContentType)))
 	}
 	parts = append(parts, r.tabsStrip())
+	if note := r.activeNote(); note != "" {
+		parts = append(parts, note)
+	}
 	return strings.Join(parts, r.th.json.punct.Render(" · "))
 }
 
@@ -188,6 +329,27 @@ func (r *responsePane) tabsStrip() string {
 		}
 	}
 	return strings.Join(rendered, r.th.desc.Render("/"))
+}
+
+// activeNote summarizes any active jq filter or search for the summary line: the
+// jq program (or its error) and the current hit position.
+func (r *responsePane) activeNote() string {
+	var notes []string
+	if r.filter.program != "" {
+		if r.filter.err != nil {
+			notes = append(notes, r.th.statusStyle(0).Render(" jq ")+" "+r.th.desc.Render(oneLine(r.filter.err.Error())))
+		} else {
+			notes = append(notes, r.th.helpKey.Render("jq ▸ ")+r.th.hdrVal.Render(r.filter.program))
+		}
+	}
+	if r.search.query != "" {
+		pos := "0/0"
+		if n := len(r.search.lines); n > 0 {
+			pos = fmt.Sprintf("%d/%d", r.search.cur+1, n)
+		}
+		notes = append(notes, r.th.helpKey.Render("/"+r.search.query)+" "+r.th.desc.Render(pos))
+	}
+	return strings.Join(notes, r.th.json.punct.Render(" · "))
 }
 
 func statusBadge(th theme, res *provider.Result) string {

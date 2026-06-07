@@ -95,6 +95,7 @@ type studio struct {
 	pal      *paletteState
 	copy     *copyMenu
 	cap      *captureState
+	editing  *editState // inline search / jq-filter input bar
 	flash    string
 
 	width, height int
@@ -312,6 +313,12 @@ func (s *studio) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s.focus = focusResponse
 		return s, nil
 
+	case editorFinishedMsg:
+		if msg.err != nil {
+			s.flash = "editor: " + oneLine(msg.err.Error())
+		}
+		return s, nil
+
 	case tea.KeyMsg:
 		return s.handleKey(msg)
 	}
@@ -341,6 +348,10 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		s.varsOpen = false
 		return s, nil
 	}
+	// the inline search / jq-filter bar captures all input while open
+	if s.editing != nil {
+		return s, s.handleEditKey(msg)
+	}
 
 	switch msg.String() {
 	case "ctrl+c":
@@ -359,7 +370,13 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			s.helpOpen = true
 			return s, nil
 		case "/":
-			s.openPalette()
+			// in the response pane, '/' searches the body; elsewhere it opens the
+			// command palette (ctrl+p remains a palette alias everywhere).
+			if s.focus == focusResponse {
+				s.startSearch()
+			} else {
+				s.openPalette()
+			}
 			return s, nil
 		case "c":
 			s.openCopyMenu()
@@ -387,6 +404,11 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return s, s.cycleFocus(-1)
 		}
 	case "esc":
+		// in the response pane, esc peels off an active search/filter before
+		// stepping back toward the command tree.
+		if s.focus == focusResponse && s.resp.clearActive() {
+			return s, nil
+		}
 		return s, s.stepBack()
 	}
 
@@ -570,6 +592,17 @@ func (s *studio) handleResponseKey(msg tea.KeyMsg) tea.Cmd {
 	case "right", "l":
 		s.resp.cycleTab(1)
 		return nil
+	case "f":
+		s.startFilter()
+		return nil
+	case "n":
+		s.resp.nextMatch(1)
+		return nil
+	case "N":
+		s.resp.nextMatch(-1)
+		return nil
+	case "o":
+		return s.openInEditor()
 	case "y":
 		s.yankResponse()
 		return nil
