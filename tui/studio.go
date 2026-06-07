@@ -2,12 +2,14 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jefflinse/clic/oauth"
 	"github.com/jefflinse/clic/provider"
 )
 
@@ -63,8 +65,9 @@ type entry struct {
 }
 
 type resultMsg struct {
-	res *provider.Result
-	err error
+	res   *provider.Result
+	err   error
+	token string // an OAuth2 token obtained while sending, to cache in the studio
 }
 
 type studio struct {
@@ -85,6 +88,12 @@ type studio struct {
 
 	focus   focusZone
 	sending bool
+
+	// OAuth2 sign-in state (only when the app's auth scheme is oauth2)
+	authOAuth bool
+	authCfg   oauth.Config
+	authToken string
+	loggingIn bool
 
 	// captured variables for request chaining ({{name}} references)
 	vars []variable
@@ -122,6 +131,7 @@ func newStudio(ctx context.Context, app StudioApp) *studio {
 	}
 	s.syncEntries()
 	s.selectLeafFromEntries()
+	s.initAuth()
 	return s
 }
 
@@ -233,7 +243,7 @@ func (s *studio) refreshPreview() {
 		s.resp.setPreview(nil)
 		return
 	}
-	preview, err := pv.Preview(s.ctx, s.currentInputs())
+	preview, err := pv.Preview(s.execCtx(), s.currentInputs())
 	if err != nil {
 		s.resp.setPreview(nil)
 		return
@@ -305,12 +315,25 @@ func (s *studio) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case resultMsg:
 		s.sending = false
+		if msg.token != "" {
+			s.authToken = msg.token // cache a token resolved during the send
+		}
 		if msg.err != nil {
 			s.resp.setError(msg.err)
 		} else {
 			s.resp.setResult(msg.res)
 		}
 		s.focus = focusResponse
+		return s, nil
+
+	case loginResultMsg:
+		s.loggingIn = false
+		if msg.err != nil {
+			s.flash = "sign-in failed: " + oneLine(msg.err.Error())
+		} else {
+			s.authToken = msg.token
+			s.flash = "signed in"
+		}
 		return s, nil
 
 	case editorFinishedMsg:
@@ -387,6 +410,8 @@ func (s *studio) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "v":
 			s.varsOpen = true
 			return s, nil
+		case "A":
+			return s, s.startLogin()
 		}
 	}
 
@@ -653,12 +678,33 @@ func (s *studio) send() tea.Cmd {
 	if s.req != nil {
 		in = s.req.collect()
 	}
-	ctx := s.ctx
+
+	// snapshot auth state so the send goroutine never reads studio fields
+	base := s.ctx
+	isOAuth, cfg, token := s.authOAuth, s.authCfg, s.authToken
+
 	return tea.Batch(
 		s.spin.Tick,
 		func() tea.Msg {
+			// for oauth2 apps without a token yet, resolve one non-interactively
+			// (cached/refreshed, or fetched for client-credentials); interactive
+			// flows ask the user to sign in.
+			if isOAuth && token == "" {
+				t, err := oauth.Token(base, cfg)
+				if err != nil {
+					if errors.Is(err, oauth.ErrLoginRequired) {
+						return resultMsg{err: errors.New("not signed in — press A to authenticate")}
+					}
+					return resultMsg{err: err}
+				}
+				token = t
+			}
+			ctx := base
+			if token != "" {
+				ctx = ctxWithToken(base, token)
+			}
 			res, err := iv.Execute(ctx, in)
-			return resultMsg{res: res, err: err}
+			return resultMsg{res: res, err: err, token: token}
 		},
 	)
 }

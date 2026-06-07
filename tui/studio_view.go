@@ -104,8 +104,11 @@ func (s *studio) topBar() string {
 		left += "  " + s.th.subtitle.Render(s.app.Description)
 	}
 	right := ""
+	if s.authOAuth {
+		right += s.authStatus() + "   "
+	}
 	if n := len(s.vars); n > 0 {
-		right = s.th.latency.Render(fmt.Sprintf("⚲ %d var", n))
+		right += s.th.latency.Render(fmt.Sprintf("⚲ %d var", n))
 		if n > 1 {
 			right += "s"
 		}

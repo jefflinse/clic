@@ -163,6 +163,7 @@ func (s *studio) renderHelp() string {
 		{"/  ·  n ⁄ N", "search the response · jump between hits"},
 		{"f", "filter the response with a jq program"},
 		{"o", "open the response in $EDITOR"},
+		{"A", "sign in (OAuth2 apps)"},
 		{"?", "toggle this help"},
 		{"ctrl+c", "quit"},
 	}
