@@ -53,6 +53,8 @@ func rootCmd() *cobra.Command {
 		unregisterCmd(),
 		listRegistryCmd(),
 		pruneRegistryCmd(),
+		loginCmd(),
+		logoutCmd(),
 		versionCmd(),
 	)
 
@@ -124,15 +126,25 @@ func runSpec(cmd *cobra.Command, args []string, force spec.Format) error {
 	}
 
 	opts := provider.ResolveOptions(cmd.Flags())
+
+	// the global -i flag (before the spec) opens the interactive studio instead
+	// of running a single command headlessly. The studio handles its own OAuth2
+	// login, so only the headless path resolves a token up front.
+	if opts.Interactive {
+		ctx := provider.WithOptions(cmd.Context(), opts)
+		if appSpec.Auth != nil {
+			ctx = provider.WithAuth(ctx, appSpec.Auth)
+		}
+		return launchStudio(ctx, appSpec, opts, args[0], args[1:])
+	}
+
+	if err := resolveOAuth(cmd.Context(), appSpec.Auth, opts); err != nil {
+		return err
+	}
+
 	ctx := provider.WithOptions(cmd.Context(), opts)
 	if appSpec.Auth != nil {
 		ctx = provider.WithAuth(ctx, appSpec.Auth)
-	}
-
-	// the global -i flag (before the spec) opens the interactive studio instead
-	// of running a single command headlessly
-	if opts.Interactive {
-		return launchStudio(ctx, appSpec, opts, args[0], args[1:])
 	}
 
 	app, err := clic.NewAppFromSpec(appSpec)
