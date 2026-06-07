@@ -10,6 +10,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/oas"
 	"github.com/jefflinse/clic/provider"
 	"github.com/jefflinse/clic/provider/rest"
 	"github.com/jefflinse/clic/spec"
@@ -165,11 +166,12 @@ func (c *compiler) command(verb, base, path, method string, item *openapi3.PathI
 	op := item.Operations()[strings.ToUpper(method)]
 
 	restSpec := &rest.Spec{
-		BaseURL:  base,
-		Endpoint: path,
-		Method:   strings.ToUpper(method),
-		RawBody:  op.RequestBody != nil,
-		Body:     BodyFields(requestBodySchema(op.RequestBody)),
+		BaseURL:   base,
+		Endpoint:  path,
+		Method:    strings.ToUpper(method),
+		RawBody:   op.RequestBody != nil,
+		Body:      BodyFields(requestBodySchema(op.RequestBody)),
+		Responses: oas.Extract(op),
 	}
 
 	// path-item parameters apply to every operation; operation parameters override

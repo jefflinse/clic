@@ -13,6 +13,7 @@ import (
 
 	"github.com/jefflinse/clic/form"
 	"github.com/jefflinse/clic/ioutil"
+	"github.com/jefflinse/clic/oas"
 	"github.com/jefflinse/clic/provider"
 	"github.com/jefflinse/clic/tui"
 	"github.com/spf13/cobra"
@@ -31,6 +32,13 @@ type Spec struct {
 	RawBody      bool                  `json:"raw_body,omitempty"      yaml:"raw_body,omitempty"`
 	Body         []form.Field          `json:"body,omitempty"          yaml:"body,omitempty"`
 	PrintStatus  bool                  `json:"print_status,omitempty"  yaml:"print_status,omitempty"`
+
+	// Responses holds the OpenAPI application/json response schemas for this
+	// operation, keyed by status ("200", "default", …), used for contract
+	// validation. It is populated only when compiled from an OpenAPI document
+	// and is excluded from serialization, so it is unavailable in converted or
+	// built native specs.
+	Responses oas.ResponseSchemas `json:"-" yaml:"-"`
 }
 
 const bodyFlagName = "body"

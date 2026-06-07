@@ -111,6 +111,39 @@ func TestCompile_AppMetadata(t *testing.T) {
 	assert.Equal(t, provider.AuthBearer, app.Auth.Type)
 }
 
+func TestCompile_RetainsResponseSchemas(t *testing.T) {
+	const doc = `
+openapi: 3.0.0
+info: {title: Users, version: "1.0"}
+paths:
+  /users/{id}:
+    get:
+      summary: get a user
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: a user
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties: {id: {type: integer}}
+`
+	app, err := openapi.Compile([]byte(doc))
+	require.NoError(t, err)
+
+	users := find(app.Commands, "users")
+	require.NotNil(t, users)
+	get := find(users.Subcommands, "get")
+	r := restOf(t, get)
+
+	require.NotEmpty(t, r.Responses, "response schemas should be retained on the rest spec")
+	_, ok := r.Responses["200"]
+	assert.True(t, ok, "the 200 response schema should be present")
+}
+
 func TestCompile_CRUDVerbs(t *testing.T) {
 	app, err := openapi.Compile([]byte(petstore))
 	require.NoError(t, err)
