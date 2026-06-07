@@ -17,6 +17,8 @@ clic lets you quickly define, generate, and run custom CLI tools using simple te
   - [noop - do nothing](#noop)
   - [rest - make a request to a REST endpoint](#rest)
 - [OpenAPI](#openapi)
+- [Contract testing](#contract-testing)
+- [Mocking](#mocking)
 - [Interactive studio](#interactive-studio)
 - [Roadmap](#roadmap)
 
@@ -366,6 +368,87 @@ Tokens are cached under `~/.clic/tokens/` (file mode `0600`), keyed by issuer + 
 
 > **Note:** OpenAPI 3.0 and 3.1 are supported (Swagger/OpenAPI 2.0 is not).
 
+## Contract testing
+
+When clic compiles an OpenAPI document it keeps each operation's response
+schemas, so it can check that a real API actually returns what it promises —
+something curl and Postman can't do without hand-written assertions.
+
+In the [studio](#interactive-studio) this is automatic: every response is
+validated against the schema for its status and the result shows as a chip on
+the response line — green `✓ conforms` when it matches, amber `⚠ N` when it
+doesn't, with the offending fields listed above the body (e.g. `user.id:
+value must be an integer`). No schema for that status? No chip.
+
+For CI and scripting, `clic test` runs a suite of named cases against an API:
+
+```yaml
+# api-tests.yaml
+spec: ./petstore.openapi.yaml          # path, URL, or registry name (or pass --spec)
+server: https://staging.petstore.io    # optional base-URL override (or pass --server)
+cases:
+  - name: get a pet
+    cmd: "pets get 42"                  # args exactly as typed after the spec
+    expect:
+      status: 200                       # an int, or a list like [200, 404]
+      contract: true                    # validate the body against the schema
+      assert:                           # optional gojq body assertions
+        - jq: ".name"
+          equals: "Rex"
+        - jq: ".tags | length"
+          gt: 0                          # equals | contains | exists | gt
+  - name: create a pet
+    cmd: 'pets create --body=@new-pet.json'
+    expect:
+      status: 201
+```
+
+```bash
+$ clic test ./api-tests.yaml           # ✓/✗ per case, exits non-zero on failure
+$ clic test ./api-tests.yaml --json    # machine-readable report for CI
+$ clic test ./api-tests.yaml --junit results.xml
+```
+
+`contract` defaults to validating against the schema whenever one is declared;
+set it to `true` to also fail when a status has no schema, or `false` to skip.
+Authentication and `--server` work exactly as for a normal run.
+
+## Mocking
+
+`clic mock` turns an OpenAPI spec into a running mock server — no server code —
+so you can develop against an API before it's built, or test your client offline:
+
+```bash
+$ clic mock ./petstore.openapi.yaml
+clic mock serving 4 route(s) at http://127.0.0.1:9800
+  GET    /pets
+  POST   /pets
+  GET    /pets/{id}
+  DELETE /pets/{id}
+
+Explore it: clic --server http://127.0.0.1:9800 ./petstore.openapi.yaml -i
+Request validation is on; malformed requests get a 422.
+```
+
+Each operation responds with a synthesized example — its declared `example` when
+present, otherwise a value built from the schema (`default`/`enum`/`format`/type).
+Incoming requests are validated against the spec, so a malformed request gets a
+Prism-style `422` with the offending fields:
+
+```bash
+$ curl -X POST localhost:9800/pets -d '{"age":"old"}'
+{"errors":["request body has an error: ... age: value must be an integer"]}
+```
+
+- `--port` sets the listen port (default `9800`); the server binds `127.0.0.1`.
+- The response status is the lowest declared `2xx` by default; override per
+  request with a `Prefer: code=NNN` header, or globally with `--status NNN`.
+- `--validate-requests=false` turns off request validation (serve anything).
+
+Because the mock speaks the same spec clic runs, you can point clic's own studio
+at it (`clic --server … -i`) and explore your mock interactively. `clic mock`
+needs the OpenAPI source (it isn't available for converted/native specs).
+
 ## Interactive studio
 
 Pass the global `-i` (`--interactive`) flag **before the spec** to open the
@@ -411,6 +494,9 @@ The studio lays the app out in k9s-style columns:
 - **Send** with `ctrl+s` and read a rich response: a colored status badge,
   latency and size, and syntax-highlighted JSON you can scroll. In the response,
   `←→` switch between the pretty / headers / raw / request views and `↑↓` scroll.
+- **Validate** every response against its OpenAPI schema automatically — a
+  `✓ conforms` / `⚠ N` chip on the response line, with any violations listed
+  above the body. See [contract testing](#contract-testing) for the CI form.
 - **Search** the response with `/` — incremental, case-insensitive, with the hit
   count in the status line; `n`/`N` jump between matches. **Filter** it with `f`:
   type a [jq](https://jqlang.github.io/jq/) program (e.g. `.items[].id`) and the
@@ -446,6 +532,8 @@ interactively.
 A very rough list of features and improvements I have in mind:
 
 - OAuth2 device-code flow (client-credentials and authorization-code already supported)
+- OpenAPI spec-diffing / breaking-change detection (`clic diff old new`)
+- External secret-manager references (e.g. `op://`, Vault) resolved at request time
 - App-level and command-level versioning
 - Support for app- and command-level variables
 - Support directory-based spec composition (a la Terraform)

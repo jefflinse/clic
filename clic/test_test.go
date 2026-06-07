@@ -71,6 +71,10 @@ func TestEvalAssertion(t *testing.T) {
 	mustPass(assertion{JQ: ".email", Equals: str("ada@example.com")})
 	mustFail(assertion{JQ: ".email", Equals: str("nope@example.com")})
 	mustPass(assertion{JQ: ".roles | length", Equals: str("2")})
+	gt1 := 1.0
+	mustPass(assertion{JQ: ".roles | length", GT: &gt1})
+	gt5 := 5.0
+	mustFail(assertion{JQ: ".roles | length", GT: &gt5})
 	mustPass(assertion{JQ: ".roles[0]", Contains: str("dmin")})
 	no := false
 	mustPass(assertion{JQ: ".email", Exists: &yes})

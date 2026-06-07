@@ -41,10 +41,11 @@ type expectation struct {
 // assertion checks a gojq expression's first output against a comparator. With
 // no comparator the expression's result must be truthy.
 type assertion struct {
-	JQ       string  `yaml:"jq"       json:"jq"`
-	Equals   *string `yaml:"equals"   json:"equals"`
-	Contains *string `yaml:"contains" json:"contains"`
-	Exists   *bool   `yaml:"exists"   json:"exists"`
+	JQ       string   `yaml:"jq"       json:"jq"`
+	Equals   *string  `yaml:"equals"   json:"equals"`
+	Contains *string  `yaml:"contains" json:"contains"`
+	Exists   *bool    `yaml:"exists"   json:"exists"`
+	GT       *float64 `yaml:"gt"       json:"gt"`
 }
 
 // loadTestSuite reads and parses a contract-test suite file.
@@ -91,6 +92,21 @@ func wantStatuses(v any) []int {
 	}
 }
 
+// toFloat coerces a gojq numeric output (which may be int or float64) to a
+// float64 for comparison.
+func toFloat(v any) (float64, bool) {
+	switch n := v.(type) {
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case float64:
+		return n, true
+	default:
+		return 0, false
+	}
+}
+
 func toInt(v any) (int, bool) {
 	switch n := v.(type) {
 	case int:
@@ -128,6 +144,14 @@ func evalAssertion(a assertion, body []byte) error {
 	case a.Contains != nil:
 		if got := renderJQ(val); !strings.Contains(got, *a.Contains) {
 			return fmt.Errorf("%q does not contain %q", got, *a.Contains)
+		}
+	case a.GT != nil:
+		n, ok := toFloat(val)
+		if !ok {
+			return fmt.Errorf("value %v is not a number", val)
+		}
+		if !(n > *a.GT) {
+			return fmt.Errorf("got %v, want > %v", n, *a.GT)
 		}
 	default:
 		if !ok || val == nil || val == false {
