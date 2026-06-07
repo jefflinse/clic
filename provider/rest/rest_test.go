@@ -8,7 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/jefflinse/clic/form"
+	"github.com/jefflinse/clic/oas"
 	"github.com/jefflinse/clic/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -150,4 +152,71 @@ func TestExecute_RawBody(t *testing.T) {
 	_, err := s.Execute(context.Background(), provider.Inputs{RawBody: `{"raw":1}`})
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"raw":1}`, string(got))
+}
+
+// contractSchema returns the response schemas for a GET /x whose 200 body is an
+// object with a required integer id.
+func contractSchema(t *testing.T) oas.ResponseSchemas {
+	t.Helper()
+	data := []byte(`
+openapi: 3.0.0
+info: {title: T, version: "1.0"}
+paths:
+  /x:
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties: {id: {type: integer}}
+`)
+	doc, err := openapi3.NewLoader().LoadFromData(data)
+	require.NoError(t, err)
+	return oas.Extract(doc.Paths.Value("/x").Get)
+}
+
+func contractServer(t *testing.T, body string) *Spec {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+	return &Spec{Method: "GET", BaseURL: srv.URL, Endpoint: "/x", Responses: contractSchema(t)}
+}
+
+func TestExecute_AttachesContract_Conforms(t *testing.T) {
+	s := contractServer(t, `{"id": 1}`)
+	res, err := s.Execute(context.Background(), provider.Inputs{})
+	require.NoError(t, err)
+	require.NotNil(t, res.Contract)
+	assert.True(t, res.Contract.Checked)
+	assert.Equal(t, "200", res.Contract.Status)
+	assert.Empty(t, res.Contract.Violations)
+}
+
+func TestExecute_AttachesContract_Violates(t *testing.T) {
+	s := contractServer(t, `{"id": "not-an-integer"}`)
+	res, err := s.Execute(context.Background(), provider.Inputs{})
+	require.NoError(t, err)
+	require.NotNil(t, res.Contract)
+	assert.True(t, res.Contract.Checked)
+	assert.NotEmpty(t, res.Contract.Violations)
+}
+
+func TestExecute_NoResponseSchemas_NoContract(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"id":1}`))
+	}))
+	defer srv.Close()
+
+	s := &Spec{Method: "GET", BaseURL: srv.URL, Endpoint: "/x"}
+	res, err := s.Execute(context.Background(), provider.Inputs{})
+	require.NoError(t, err)
+	assert.Nil(t, res.Contract, "a spec without response schemas should not produce a contract result")
 }

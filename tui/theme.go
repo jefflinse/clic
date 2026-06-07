@@ -60,11 +60,13 @@ type theme struct {
 	desc     lipgloss.Style // a row's description / secondary text
 
 	// response
-	latency lipgloss.Style
-	size    lipgloss.Style
-	hdrKey  lipgloss.Style
-	hdrVal  lipgloss.Style
-	match   lipgloss.Style // a search hit within the response body
+	latency     lipgloss.Style
+	size        lipgloss.Style
+	hdrKey      lipgloss.Style
+	hdrVal      lipgloss.Style
+	match       lipgloss.Style // a search hit within the response body
+	contractOK  lipgloss.Style // "conforms" contract chip
+	contractBad lipgloss.Style // "violations" contract chip
 
 	// json
 	json jsonStyles
@@ -93,11 +95,13 @@ func newTheme() theme {
 		selDim:   base.Foreground(p.text).Background(p.bgSel),
 		desc:     base.Foreground(p.muted),
 
-		latency: base.Foreground(p.accent2),
-		size:    base.Foreground(p.muted),
-		hdrKey:  base.Foreground(p.accent2),
-		hdrVal:  base.Foreground(p.text),
-		match:   base.Bold(true).Foreground(lipgloss.Color("#0B1020")).Background(p.accent2),
+		latency:     base.Foreground(p.accent2),
+		size:        base.Foreground(p.muted),
+		hdrKey:      base.Foreground(p.accent2),
+		hdrVal:      base.Foreground(p.text),
+		match:       base.Bold(true).Foreground(lipgloss.Color("#0B1020")).Background(p.accent2),
+		contractOK:  base.Bold(true).Padding(0, 1).Foreground(lipgloss.Color("#0B1020")).Background(p.success),
+		contractBad: base.Bold(true).Padding(0, 1).Foreground(lipgloss.Color("#0B1020")).Background(p.warn),
 
 		json: jsonStyles{
 			key:     base.Foreground(p.accent2),

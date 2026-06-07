@@ -165,7 +165,14 @@ func (s *Spec) Execute(ctx context.Context, in provider.Inputs) (*provider.Resul
 		return nil, err
 	}
 
-	req, err := s.buildRequest(ctx, bytes.NewReader(body))
+	return s.do(ctx, bytes.NewReader(body))
+}
+
+// do builds and performs the request and returns a structured result, including
+// any contract-validation outcome. It is shared by the interactive Execute path
+// and the headless run path.
+func (s *Spec) do(ctx context.Context, body io.Reader) (*provider.Result, error) {
+	req, err := s.buildRequest(ctx, body)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +191,28 @@ func (s *Spec) Execute(ctx context.Context, in provider.Inputs) (*provider.Resul
 		Headers:     headers,
 		ContentType: headers.Get("Content-Type"),
 		Body:        respBody,
+		Contract:    s.validateContract(code, respBody),
 	}, nil
+}
+
+// validateContract checks the response body against the OpenAPI response schema
+// for its status. It returns nil when the operation declares no response
+// schemas at all (e.g. a native spec). When a schema exists for the status it
+// reports conformance; when none matches the status (or the body is empty),
+// the result is marked unchecked.
+func (s *Spec) validateContract(status int, body []byte) *provider.ContractResult {
+	if len(s.Responses) == 0 {
+		return nil
+	}
+	key, ms, ok := oas.PickResponse(s.Responses, status)
+	if !ok || len(body) == 0 {
+		return &provider.ContractResult{Checked: false}
+	}
+	return &provider.ContractResult{
+		Checked:    true,
+		Status:     key,
+		Violations: oas.ValidateBody(ms.Schema, body),
+	}
 }
 
 // Preview describes exactly what the request will send, without performing it.

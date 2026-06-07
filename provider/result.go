@@ -46,6 +46,27 @@ type Result struct {
 
 	// Body is the raw response body or captured output.
 	Body []byte
+
+	// Contract is the outcome of validating the response body against the
+	// OpenAPI response schema, or nil when no schema was available (e.g. a
+	// native spec, or a status with no declared response).
+	Contract *ContractResult
+}
+
+// ContractResult reports whether a response body conformed to the OpenAPI
+// schema declared for its status.
+type ContractResult struct {
+	// Checked is true when a schema was found for the response's status and
+	// validation ran. When false, there was nothing to validate against.
+	Checked bool
+
+	// Status is the response-schema key that was validated against ("200",
+	// "default", …).
+	Status string
+
+	// Violations lists the schema violations found, empty when the body
+	// conforms.
+	Violations []string
 }
 
 // A Section is a named group of input fields within a command's interactive

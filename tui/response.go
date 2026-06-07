@@ -157,15 +157,24 @@ func (r *responsePane) sourceBytes() []byte {
 func (r *responsePane) renderBody() string {
 	body := r.sourceBytes()
 	if len(body) == 0 {
-		return r.th.desc.Render("(empty response)")
+		return withBanner(r.contractBanner(), r.th.desc.Render("(empty response)"))
 	}
 	// only attempt syntax highlighting for reasonably-sized JSON
 	if len(body) <= 512*1024 {
 		if pretty, ok := highlightJSON(body, r.th.json); ok {
-			return pretty
+			return withBanner(r.contractBanner(), pretty)
 		}
 	}
-	return string(body)
+	return withBanner(r.contractBanner(), string(body))
+}
+
+// withBanner prepends a banner (e.g. contract violations) above body content,
+// separated by a blank line. An empty banner returns the body unchanged.
+func withBanner(banner, body string) string {
+	if banner == "" {
+		return body
+	}
+	return banner + "\n\n" + body
 }
 
 // searchText is the plain-text the incremental search runs over: pretty-printed
@@ -304,6 +313,9 @@ func (r *responsePane) summary() string {
 	}
 
 	parts := []string{statusBadge(r.th, r.result)}
+	if chip := r.contractChip(); chip != "" {
+		parts = append(parts, chip)
+	}
 	if r.result.Latency > 0 {
 		parts = append(parts, r.th.latency.Render(humanizeDuration(r.result.Latency)))
 	}
@@ -350,6 +362,40 @@ func (r *responsePane) activeNote() string {
 		notes = append(notes, r.th.helpKey.Render("/"+r.search.query)+" "+r.th.desc.Render(pos))
 	}
 	return strings.Join(notes, r.th.json.punct.Render(" · "))
+}
+
+// contractChip renders the response's contract-validation outcome as a small
+// badge for the summary line: a green "conforms" when the body matches the
+// OpenAPI schema, an amber count when it violates it, and nothing when no
+// schema was checked.
+func (r *responsePane) contractChip() string {
+	c := r.result.Contract
+	if c == nil || !c.Checked {
+		return ""
+	}
+	if len(c.Violations) == 0 {
+		return r.th.contractOK.Render("✓ conforms")
+	}
+	return r.th.contractBad.Render(fmt.Sprintf("⚠ %d", len(c.Violations)))
+}
+
+// contractBanner renders the list of schema violations as a block to prepend
+// above the response body, or "" when the body conforms or was not checked.
+func (r *responsePane) contractBanner() string {
+	if r.result == nil || r.result.Contract == nil {
+		return ""
+	}
+	c := r.result.Contract
+	if !c.Checked || len(c.Violations) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString(r.th.contractBad.Render(fmt.Sprintf("⚠ %d contract violation(s) vs %s schema", len(c.Violations), c.Status)))
+	for _, v := range c.Violations {
+		b.WriteString("\n  " + r.th.json.null.Render("• ") + r.th.hdrVal.Render(v))
+	}
+	return b.String()
 }
 
 func statusBadge(th theme, res *provider.Result) string {
