@@ -354,10 +354,56 @@ func authScheme(doc *openapi3.T) *provider.AuthScheme {
 			}
 		case "apikey":
 			return &provider.AuthScheme{Type: provider.AuthAPIKey, In: scheme.In, Name: scheme.Name}
+		case "oauth2":
+			if s := oauthScheme(scheme.Flows); s != nil {
+				return s
+			}
 		}
 	}
 
 	return nil
+}
+
+// oauthScheme maps an OpenAPI oauth2 securityScheme's flows onto a clic auth
+// scheme. It prefers the non-interactive client-credentials flow, falling back
+// to authorization-code; a --oauth-flow override is applied later at token
+// resolution. Returns nil when neither supported flow is declared.
+func oauthScheme(flows *openapi3.OAuthFlows) *provider.AuthScheme {
+	if flows == nil {
+		return nil
+	}
+	if f := flows.ClientCredentials; f != nil {
+		return &provider.AuthScheme{
+			Type:     provider.AuthOAuth2,
+			Flow:     provider.FlowClientCredentials,
+			TokenURL: f.TokenURL,
+			Scopes:   scopeNames(f.Scopes),
+		}
+	}
+	if f := flows.AuthorizationCode; f != nil {
+		return &provider.AuthScheme{
+			Type:     provider.AuthOAuth2,
+			Flow:     provider.FlowAuthorizationCode,
+			AuthURL:  f.AuthorizationURL,
+			TokenURL: f.TokenURL,
+			Scopes:   scopeNames(f.Scopes),
+		}
+	}
+	return nil
+}
+
+// scopeNames returns the scope identifiers from an OAuth flow's scope map, sorted
+// for stable output.
+func scopeNames(scopes map[string]string) []string {
+	if len(scopes) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(scopes))
+	for name := range scopes {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 func schemaType(ref *openapi3.SchemaRef) string {

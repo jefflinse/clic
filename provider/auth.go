@@ -8,11 +8,16 @@ import (
 
 // Names of clic's global flags used for server selection and auth.
 const (
-	FlagServer   = "server"
-	FlagToken    = "token"
-	FlagUsername = "username"
-	FlagPassword = "password"
-	FlagAPIKey   = "api-key"
+	FlagServer       = "server"
+	FlagToken        = "token"
+	FlagUsername     = "username"
+	FlagPassword     = "password"
+	FlagAPIKey       = "api-key"
+	FlagClientID     = "client-id"
+	FlagClientSecret = "client-secret"
+	FlagScopes       = "scopes"
+	FlagOAuthFlow    = "oauth-flow"
+	FlagRedirectURL  = "redirect-url"
 )
 
 // Auth scheme types.
@@ -20,21 +25,37 @@ const (
 	AuthBearer = "bearer"
 	AuthBasic  = "basic"
 	AuthAPIKey = "apikey"
+	AuthOAuth2 = "oauth2"
+)
+
+// OAuth2 grant flows clic can perform.
+const (
+	FlowClientCredentials = "client_credentials"
+	FlowAuthorizationCode = "authorization_code"
 )
 
 // AuthScheme describes how requests are authenticated, surfaced as CLI flags
 // with CLIC_* environment-variable fallback.
 type AuthScheme struct {
-	Type string `json:"type"           yaml:"type"`           // bearer | basic | apikey
+	Type string `json:"type"           yaml:"type"`           // bearer | basic | apikey | oauth2
 	In   string `json:"in,omitempty"   yaml:"in,omitempty"`   // header | query (apikey)
 	Name string `json:"name,omitempty" yaml:"name,omitempty"` // header/query name (apikey)
+
+	// oauth2 specifics (Type == oauth2). The access token clic obtains from these
+	// is applied as a bearer token, so oauth2 reuses the bearer code path.
+	Flow     string   `json:"flow,omitempty"      yaml:"flow,omitempty"`      // client_credentials | authorization_code
+	AuthURL  string   `json:"auth_url,omitempty"  yaml:"auth_url,omitempty"`  // authorization endpoint (authorization_code)
+	TokenURL string   `json:"token_url,omitempty" yaml:"token_url,omitempty"` // token endpoint
+	Scopes   []string `json:"scopes,omitempty"    yaml:"scopes,omitempty"`    // requested scopes
 }
 
 // Apply adds credentials to the request using the values resolved into the
 // given options.
 func (a *AuthScheme) Apply(req *http.Request, o *Options) {
 	switch strings.ToLower(a.Type) {
-	case AuthBearer:
+	case AuthBearer, AuthOAuth2:
+		// oauth2's resolved access token is carried in o.Token, so it is applied
+		// exactly like a bearer token.
 		if o.Token != "" {
 			req.Header.Set("Authorization", "Bearer "+o.Token)
 		}

@@ -23,6 +23,13 @@ type Options struct {
 	Username    string
 	Password    string
 	APIKey      string
+
+	// oauth2 credentials and overrides
+	ClientID     string
+	ClientSecret string
+	Scopes       []string
+	OAuthFlow    string // override the grant flow when a spec declares several
+	RedirectURL  string // loopback redirect for the authorization-code flow
 }
 
 type optionsCtxKey struct{}
@@ -51,19 +58,41 @@ func RegisterGlobalFlags(flags *pflag.FlagSet, defaultServer string) {
 	flags.String(FlagUsername, "", "basic-auth username (env: CLIC_USERNAME)")
 	flags.String(FlagPassword, "", "basic-auth password (env: CLIC_PASSWORD)")
 	flags.String(FlagAPIKey, "", "API key (env: CLIC_API_KEY)")
+	flags.String(FlagClientID, "", "OAuth2 client ID (env: CLIC_CLIENT_ID)")
+	flags.String(FlagClientSecret, "", "OAuth2 client secret (env: CLIC_CLIENT_SECRET)")
+	flags.String(FlagScopes, "", "OAuth2 scopes, comma-separated (env: CLIC_SCOPES)")
+	flags.String(FlagOAuthFlow, "", "OAuth2 grant flow override: client_credentials | authorization_code")
+	flags.String(FlagRedirectURL, "", "OAuth2 loopback redirect URL for the authorization-code flow")
 }
 
 // ResolveOptions reads clic's global flags from the given flag set into an
 // Options value, falling back to CLIC_* environment variables for credentials.
 func ResolveOptions(flags *pflag.FlagSet) *Options {
 	return &Options{
-		Server:      flagString(flags, FlagServer),
-		Interactive: flagBool(flags, FlagInteractive),
-		Token:       flagOrEnv(flags, FlagToken),
-		Username:    flagOrEnv(flags, FlagUsername),
-		Password:    flagOrEnv(flags, FlagPassword),
-		APIKey:      flagOrEnv(flags, FlagAPIKey),
+		Server:       flagString(flags, FlagServer),
+		Interactive:  flagBool(flags, FlagInteractive),
+		Token:        flagOrEnv(flags, FlagToken),
+		Username:     flagOrEnv(flags, FlagUsername),
+		Password:     flagOrEnv(flags, FlagPassword),
+		APIKey:       flagOrEnv(flags, FlagAPIKey),
+		ClientID:     flagOrEnv(flags, FlagClientID),
+		ClientSecret: flagOrEnv(flags, FlagClientSecret),
+		Scopes:       splitScopes(flagOrEnv(flags, FlagScopes)),
+		OAuthFlow:    flagString(flags, FlagOAuthFlow),
+		RedirectURL:  flagString(flags, FlagRedirectURL),
 	}
+}
+
+// splitScopes parses a comma- or space-separated scope list into its elements,
+// dropping empties.
+func splitScopes(s string) []string {
+	fields := strings.FieldsFunc(s, func(r rune) bool {
+		return r == ',' || r == ' '
+	})
+	if len(fields) == 0 {
+		return nil
+	}
+	return fields
 }
 
 func flagString(flags *pflag.FlagSet, name string) string {
