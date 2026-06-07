@@ -56,6 +56,7 @@ func rootCmd() *cobra.Command {
 		loginCmd(),
 		logoutCmd(),
 		testCmd(),
+		mockCmd(),
 		versionCmd(),
 	)
 
